@@ -10,9 +10,10 @@ readarray -t feed < <(python3 -c 'from ci.repository import FEED, FEED_BRANCH; p
 repository=${feed[0]}
 branch=${feed[1]}
 if [ -n "${PACKAGES_TOKEN:-}" ]; then
-    export GIT_CONFIG_COUNT=1
-    export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
-    export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$PACKAGES_TOKEN" | base64 -w0)"
+    export GIT_CONFIG_COUNT=2
+    export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader GIT_CONFIG_VALUE_0=
+    export GIT_CONFIG_KEY_1=http.https://github.com/.extraheader
+    export GIT_CONFIG_VALUE_1="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$PACKAGES_TOKEN" | base64 -w0)"
 fi
 if [ ! -d "$root/.git" ]; then
     git clone --filter=blob:none --no-checkout https://github.com/$repository.git "$root"

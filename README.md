@@ -6,16 +6,22 @@ It does not read or migrate the SNodeC feed, and it does not use SNodeC credenti
 
 ## What you need to do now
 
-The organization and four repositories already exist. The dummy sources and the
-empty publication state are pushed. The coordinator implementation is staged
-locally pending credential setup. Final offline verification passed: **255 tests
-passed, zero failed/errored, one OpenWrt signer-tool environment skip** out of
-256, plus the wrapper/source/lint/syntax checks. Actual OpenWrt signatures and
-GitHub behavior still need the live experiment.
+The organization and four repositories exist, and the coordinator workflows,
+dummy sources and fresh publication state are pushed. All three Apps and the
+expected repository credential entries are configured. Secret contents were
+checked manually by the operator; runtime authentication and signing are tested
+separately below.
 
-**Your remaining setup is three GitHub Apps and one read-only observer token.**
-Follow [the credential steps below](#2-create-the-three-github-apps). Do not move
-version tags until the coordinator workflows and all credentials are ready.
+**Live validation is underway.** The empty-feed control run passed, and the first
+source tag notification authenticated and reached the coordinator. Its capture
+then exposed a duplicate Git Authorization header from checkout and the status
+writer. The shared writer now explicitly clears inherited headers before using
+its feed-write token. A regression reproduced the defect before the correction
+and passes afterwards. Complete package publication, real OpenWrt signatures,
+observer access and cascade recovery are not yet claimed as verified.
+
+For a new deployment, follow [the credential steps below](#2-create-the-three-github-apps)
+from the beginning. In this prepared sandbox, do not recreate the existing Apps.
 
 In the current assisted setup session you may use
 [the temporary local setup page](http://127.0.0.1:18765/). It pre-fills the three
@@ -28,7 +34,7 @@ complete without that helper.
 
 | Repository | Purpose | Initial state |
 | --- | --- | --- |
-| [ci-coordinator](https://github.com/VOC-Experiments/ci-coordinator) | Capture, scheduling, verification, central signing/publication | Bootstrap documentation; verified implementation follows |
+| [ci-coordinator](https://github.com/VOC-Experiments/ci-coordinator) | Capture, scheduling, verification, central signing/publication | Canonical coordinator deployed; live validation underway |
 | [packages](https://github.com/VOC-Experiments/packages) | Public signed feed and status | Fresh `status.json`, no product active |
 | [demo-core](https://github.com/VOC-Experiments/demo-core) | Tiny C library and executable | Source-owned JSON and Debian/OpenWrt hooks, no activation tag yet |
 | [demo-app](https://github.com/VOC-Experiments/demo-app) | Tiny C executable linked to demo-core | Source-owned JSON and hooks, depends on demo-core |
