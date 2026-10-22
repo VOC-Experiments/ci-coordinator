@@ -8,7 +8,10 @@ It does not read or migrate the SNodeC feed, and it does not use SNodeC credenti
 
 The organization and four repositories already exist. The dummy sources and the
 empty publication state are pushed. The coordinator implementation is staged
-locally while final offline verification completes.
+locally pending credential setup. Final offline verification passed: **255 tests
+passed, zero failed/errored, one OpenWrt signer-tool environment skip** out of
+256, plus the wrapper/source/lint/syntax checks. Actual OpenWrt signatures and
+GitHub behavior still need the live experiment.
 
 **Your remaining setup is three GitHub Apps and one read-only observer token.**
 Follow [the credential steps below](#2-create-the-three-github-apps). Do not move
