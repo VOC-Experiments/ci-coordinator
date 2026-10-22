@@ -4,6 +4,8 @@ This organization is a disposable **first deployment** of the canonical package 
 It uses its own repositories, credentials, signing keys and fresh package feed.
 It does not read or migrate the SNodeC feed, and it does not use SNodeC credentials.
 
+The [live test matrix](docs/live-validation.md) tracks guarantees across all sandbox repositories, evidence and unresolved setup.
+
 ## What you need to do now
 
 The organization and four repositories exist, and the coordinator workflows,
