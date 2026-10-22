@@ -6,7 +6,7 @@ import shutil
 import tempfile
 
 from ci.repository import (PROJECTS, ROOT, digest, run, signer, unchanged, publication_needed, project_file,
-                           ownership, release_view, source_tag, validate_package)
+                           ownership, release_view, source_tag, validate_package, package_metadata, package_version)
 
 
 def stage(row, packages, bundle, output):
@@ -22,14 +22,16 @@ def stage(row, packages, bundle, output):
     expected = {name for inventory in packages.glob('*.packages') for name in inventory.read_text().splitlines()}
     names = set()
     versions = {}
+    context = json.loads((bundle / 'context.json').read_text())
+    expected_version = {project: package_version(row, context['versions'][project], os.environ['PACKAGE_RELEASE'])}
     for package in packages.glob('*.rpm'):
-        name, arch = run('rpm', '-qp', '--qf', '%{NAME} %{ARCH}', str(package)).split()
+        fields = package_metadata(package)
+        name, arch = fields['name'], fields['arch']
         if arch != row['arch'] or name in names:
             raise RuntimeError(f'Unexpected RPM: {name}/{arch}')
         names.add(name)
-        release = run('rpm', '-qp', '--qf', '%{VERSION}-%{RELEASE}', str(package))
-        owner = validate_package(bundle, row, package.name, name, release)
-        versions[owner] = release
+        owner = validate_package(owners, expected_version, package.name, fields, row)
+        versions[owner] = fields['version']
         shutil.copy2(package, pool / package.name)
     if names != expected:
         raise RuntimeError('Incomplete RPM component inventory')

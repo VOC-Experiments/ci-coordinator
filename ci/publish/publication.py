@@ -13,6 +13,7 @@ import sys
 
 from ci.repository import ROOT, run, select, project_file, digest, PROJECTS, REPOSITORIES, supports, package_owner, project_revision, package_version, affected, dependencies, rows, activate, ROW_PROJECTS, dependency_identity, source_commit, missing_prerequisites, binding
 from ci.repository import ownership, COORDINATOR, OWNER, FEED, FEED_BRANCH, source_tag, version, release_view, generation_tag, work_index, cascade_blockers
+from ci.repository import requested_projects, package_metadata, validate_package, validate_projects
 
 
 def targets():
@@ -146,7 +147,10 @@ def render(root, state):
         selected = [row for row in target_rows if row['distribution'] == distribution]
         suites = list(dict.fromkeys(row['suite'] for row in selected))
         architectures = list(dict.fromkeys(row['arch'] for row in selected))
-        platforms.append(f"| [{title}](docs/installation/{guide}.md#banner) | {', '.join(suites)} | {', '.join(architectures) if len(architectures) < 8 else str(max(sum(row['suite'] == suite for row in selected) for suite in suites)) + ' per release (names can differ)'} |")
+        if selected:
+            label = ', '.join(architectures) if len(architectures) < 8 else (
+                str(max(sum(row['suite'] == suite for row in selected) for suite in suites)) + ' per release (names can differ)')
+            platforms.append(f"| [{title}](docs/installation/{guide}.md#banner) | {', '.join(suites)} | {label} |")
     def overview(prefix):
         return '| Project | Latest release | Status |\n| --- | --- | --- |\n' + '\n'.join(
             f'| [{config["title"]}](https://github.com/{OWNER}/{project}#banner) | {release} | '
@@ -271,6 +275,7 @@ def reserve(root, project, run_id):
             definition=PROJECTS[project], sha=os.environ['RELEASE_SHA'], tag=tag,
             at=requested_at, run=os.environ.get('RELEASE_RUN', '0'),
             capture=run_id, capture_attempt=int(os.environ.get('GITHUB_RUN_ATTEMPT', '1')), revision=allocations[run_id][project])
+        validate_projects(requested_projects(requests))
     write(path, state)
     return allocations[run_id]
 
@@ -317,6 +322,11 @@ def publish(root, bundle, incoming, row, generation, project, state=None):
     if identical and previous['unsigned_files'] != unsigned:
         raise RuntimeError('Different package content under the same publication identity')
     if not identical:
+        authority = Path(os.environ.get('PACKAGE_SITE', ROOT / 'site')).parent / 'keys'
+        key = 'opkg.pub' if row['family'] == 'openwrt' and row['suite'] == '24.10' else (
+            'apk.pem' if row['family'] == 'openwrt' else 'apt.asc')
+        if (ROOT / 'keys' / key).read_bytes() != (authority / key).read_bytes():
+            raise RuntimeError('Capture verification key differs from deployed authority; a fresh capture is required')
         node = generation.get('nodes', {}).get(row['id'] + '/' + project, {})
         if receipt and (node.get('source') and node['source'] != receipt['source'] or previous.get('source', {}).get('run') == receipt['source']['run'] and previous['source']['attempt'] > receipt['source']['attempt']):
             raise RuntimeError('Superseded build attempt')
@@ -374,12 +384,26 @@ def publish(root, bundle, incoming, row, generation, project, state=None):
                     raise RuntimeError('Published sibling checksum mismatch')
                 (directory / name).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(root / relative, directory / name)
+        controls, identities = {}, set()
+        own = dict(sources={project: metadata['sources'][project]}, files=unsigned,
+                   versions={project: package_version(row, profile['context']['versions'][project], generation['revisions'][project])})
+        for entry in [*retained, own]:
+            owners = current_owners | incoming_owners | ownership(entry)
+            for name in entry['files']:
+                if name.endswith(('.deb', '.rpm', '.ipk', '.apk')):
+                    fields = package_metadata(directory / name)
+                    validate_package(owners, entry['versions'], name, fields, row)
+                    identity = tuple(fields[k] for k in ['name', 'version', 'arch'])
+                    if identity in identities:
+                        raise ValueError('Duplicate package identity: ' + name)
+                    identities.add(identity)
+                    controls[name] = fields
         for name in metadata['files'].keys() - files.keys():
             (directory / name).unlink()
         metadata['files'] = files
-        own_names = [n for n in metadata.get('packages', []) if package_owner(n, incoming_owners) == project]
-        metadata['packages'] = sorted(set(own_names + [n for e in retained for n in e.get('packages', [])]))
-        own_versions = {k: v for k, v in metadata['versions'].items() if k == project}
+        own_names = sorted({controls[n]['name'] for n in unsigned if n in controls})
+        metadata['packages'] = sorted({fields['name'] for fields in controls.values()})
+        own_versions = own['versions']
         releases.setdefault(project, {})[tag] = dict(revision=metadata['revision'], sources={project: metadata['sources'][project]},
             context=profile['context'], files=unsigned, unsigned_files=unsigned, versions=own_versions, packages=own_names)
         metadata['releases'] = releases
@@ -389,7 +413,7 @@ def publish(root, bundle, incoming, row, generation, project, state=None):
         write(manifests[0], metadata)
         if row['family'] == 'openwrt':
             from ci.publish.openwrt import reindex
-            reindex(directory, root / feed_paths(row)[0], metadata)
+            reindex(directory, metadata, controls)
             write(manifests[0], metadata)
         if row['family'] == 'openwrt':
             importlib.import_module('ci.repository').publish(incoming, root, bundle)
@@ -398,7 +422,7 @@ def publish(root, bundle, incoming, row, generation, project, state=None):
         else:
             importlib.import_module('ci.publish.linux').publish(incoming, root, bundle)
         info, directory = published(root, row)
-        shutil.copytree(ROOT / 'keys', root / 'keys', dirs_exist_ok=True)
+        shutil.copytree(authority, root / 'keys', dirs_exist_ok=True)
         importlib.import_module('ci.publish.cleanup').cleanup(root, row)
         info, directory = published(root, row)
         info['published_at'] = datetime.now(timezone.utc).isoformat()

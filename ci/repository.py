@@ -2,6 +2,8 @@
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from email.parser import Parser
+import io
 import http.client
 from graphlib import TopologicalSorter
 from functools import cache
@@ -16,6 +18,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import tarfile
 import time
 import urllib.error
 import urllib.request
@@ -146,6 +149,10 @@ def validate_projects(projects):
 
 def load_projects(path):
     return validate_projects(json.loads(path.read_text())['projects']) if path.exists() else {}
+
+
+def requested_projects(requests):
+    return {project: values[max(values, key=version)]['definition'] for project, values in requests.items() if values}
 
 
 def bind_projects(projects, baseline, project):
@@ -281,7 +288,7 @@ def configure(root, project, commit, claimed):
     if {k: v for k, v in current.items() if not k.startswith('_')} != claimed:
         raise ValueError('Notification matrix does not match its source commit')
     requests = json.loads((root / 'status.json').read_text()).get('requests', {})
-    selected = {p: values[max(values, key=version)]['definition'] for p, values in requests.items() if p in REPOSITORIES and values}
+    selected = requested_projects({p: values for p, values in requests.items() if p in REPOSITORIES})
     selected = validate_projects(selected | {project: current})
     PROJECTS.clear()
     PROJECTS.update(selected)
@@ -370,14 +377,48 @@ def linux_matrix():
     return list({json.dumps(row['build'], sort_keys=True): row['build'] for config in PROJECTS.values() for row in rows(config) if row['family'] == 'linux'}.values())
 
 
-def validate_package(bundle, row, filename, name, release):
-    context = json.loads((bundle / 'context.json').read_text())
-    owners = ownership(dict(sources=json.loads((bundle / 'sources.json').read_text())))
-    owner = package_owner(name, owners)
+def package_metadata(path):
+    """Read controls from package bytes; the publisher applies the pinned policy."""
+    control, fields = '', {}
+    if path.suffix == '.deb':
+        control = run('dpkg-deb', '-f', str(path))
+    elif path.suffix == '.rpm':
+        name, release, arch, epoch = run('rpm', '-qp', '--qf', '%{NAME}\n%{VERSION}-%{RELEASE}\n%{ARCH}\n%{EPOCHNUM}', str(path)).splitlines()
+        fields = dict(name=name, version=(epoch + ':' if epoch not in {'0', '(none)'} else '') + release, arch=arch)
+    elif path.suffix == '.ipk':
+        with tarfile.open(path, 'r:gz') as outer:
+            members = [m for m in outer if m.name.removeprefix('./') == 'control.tar.gz' and m.isfile()]
+            if len(members) != 1:
+                raise ValueError('IPK needs exactly one control archive: ' + path.name)
+            with tarfile.open(fileobj=io.BytesIO(outer.extractfile(members[0]).read()), mode='r:gz') as inner:
+                controls = [m for m in inner if m.name.removeprefix('./') == 'control' and m.isfile()]
+                if len(controls) != 1:
+                    raise ValueError('IPK needs exactly one control file: ' + path.name)
+                control = inner.extractfile(controls[0]).read().decode()
+    elif path.suffix == '.apk':
+        fields = json.loads(run('apk', 'adbdump', '--format', 'json', str(path)))['info']
+    else:
+        raise ValueError('Unsupported package metadata: ' + path.name)
+    if control:
+        parsed = Parser().parsestr(control)
+        if any(len(parsed.get_all(k, [])) != 1 for k in ['Package', 'Version', 'Architecture']):
+            raise ValueError('Package needs unique name, version and architecture: ' + path.name)
+        if path.suffix == '.ipk' and any(k in parsed for k in ['Filename', 'Size', 'SHA256sum']):
+            raise ValueError('IPK control must not supply generated index fields: ' + path.name)
+        fields = dict(zip(['name', 'version', 'arch'], (parsed[k] for k in ['Package', 'Version', 'Architecture'])), control=control)
+    if any(not isinstance(fields.get(k), str) or not fields[k] for k in ['name', 'version', 'arch']):
+        raise ValueError('Incomplete package metadata: ' + path.name)
+    return fields
+
+
+def validate_package(owners, versions, filename, fields, row):
+    owner = package_owner(fields['name'], owners)
     if owner is None or not project_file(filename, owner, owners):
-        raise ValueError('Package name and filename disagree with pinned ownership: ' + name)
-    if owner == context['build_project'] and release != package_version(row, context['versions'][owner], os.environ['PACKAGE_RELEASE']):
-        raise ValueError('Package version disagrees with captured tag and revision: ' + name)
+        raise ValueError('Package name and filename disagree with pinned ownership: ' + fields['name'])
+    if owner in versions and fields['version'] != versions[owner]:
+        raise ValueError('Package version disagrees with pinned release: ' + fields['name'])
+    if row.get('arch') and fields['arch'] not in {row['arch'], 'noarch' if filename.endswith('.rpm') else 'all'}:
+        raise ValueError('Package architecture disagrees with target: ' + fields['name'])
     return owner
 
 
@@ -605,6 +646,13 @@ def stage(sdk, bundle, output):
     baseline = json.loads((bundle / 'baseline.json').read_text())
     info['versions'].update({project: version for project, version in baseline.get('versions', {}).items()
                              if project != info['context']['build_project']})
+    owners = ownership(info)
+    names = set()
+    for path in packages:
+        fields = package_metadata(path)
+        validate_package(owners, info['versions'], path.name, fields, info)
+        names.add(fields['name'])
+    info['packages'] = sorted(names)
     (destination / 'build.json').write_text(json.dumps(info, indent=2) + '\n')
     return None
 

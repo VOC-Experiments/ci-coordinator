@@ -33,7 +33,7 @@ This is a test plan and evidence register, not an all-green claim. Status is exp
 | L27 | packages | Highest pending/failure status; real job links only | planned |  |
 | L28 | coordinator | Capture expiry and artifact expiry handling | blocked | requires an isolated expiry fixture or waiting for actual expiry; no ledger fabrication |
 | L29 | coordinator | Ambiguous dispatch, transient API and lost callback recovery | partial | cancel/rerun/retry tested; real API fault injection not configured |
-| L30 | four sources, coordinator | Three-level chain and diamond: zero early join, exactly one join | running | six-repository App minting succeeded in 39835348765; four-source activation ran; Debian join published; OpenWrt joins and exact-once/capture audit remain incomplete |
+| L30 | four sources, coordinator | Three-level chain and diamond: zero early join, exactly one join | converged, not certified | all five rows converged under root 39836077535, with six join source admissions; captures/artifacts/publication audit and deliberate scenarios remain pending |
 | L31 | organization, coordinator | Private unrelated repository visibility and occupied-job count | blocked | needs private test repository plus corresponding installation visibility review |
 | L32 | all repositories | No signing secrets/feed write/sibling reads in source credentials | partial | narrow token minting succeeds; negative permission probes pending |
 | L33 | coordinator, packages | Concurrent status and publication CAS preserve both outcomes | partial | real lease conflict recovered; deliberately timed race pending |
@@ -57,7 +57,7 @@ Before the first tags of side and join:
 
 No tag has been created for either new repository during preparation. A failed first build must keep activation, but a credential failure is not a useful substitute for the diamond test.
 
-## Diamond scenario matrix (credential setup confirmed; live execution underway)
+## Diamond scenario matrix (prior convergence; independent recertification pending)
 
 | Case | Root / arms / join action | Required per-row evidence |
 | --- | --- | --- |
@@ -116,3 +116,17 @@ Actual negative captures rejected an unsupported distro (39837395135), a
 self-cycle (39837331084), and an unknown registered dependency (39837323639).
 The side v0.9.0 two-row capture published trixie and closed bookworm with a
 missing-core reason. These lower test tags do not replace the highest graph.
+
+## Review correction and new evidence requirements
+
+The fixed coordinator is byte-identical to the locally verified canonical production files (configuration, keys, site content and sandbox-only workflows excluded). The offline run passed 280 tests with one missing-OpenWrt-tools skip, plus28 additional checks; the completed review matrix has24 passing tests. Expanded full discovery is recorded separately. These counts do not prove live client installability.
+
+| ID | Scope | Current outcome |
+| --- | --- | --- |
+| L36 | Namespace spoof, lower fixture tags; Debian/RPM/opkg/APK | Required negative publisher test; pending on fixed tooling |
+| L37 | Feed public keys versus deployed default-branch authority | Offline key-regression checks pass; verify after each new publication |
+| L38 | Registered child while parent aggregate run lags | Offline public tick regression passes; live observation pending |
+
+D02–D08 require deliberate sequencing and an independent audit of held capture intents, child builds, raw arm facts, artifact contents and exact publisher snapshots. Prior convergence is not exactly-once certification. The auditor includes duplicate and stale-arm negative self-tests. Local mocks do not certify real signatures or package installation. Official disposable OpenWrt client rootfs tests need the work order's separate S2 approval; run/artifact deletion, forced budget exhaustion and new permissions need S3.
+
+Read-only observer accounting reports actual API commands/rate limits separately from the coordinator's static cost formula. N5 retains an unobservable request and its commitments; a new verified source push for the same tag replaces the request through CAS. A 404 alone never proves absence. N10 probes baseline commits by exact SHA and measured age, without changing the accepted parentless writer.

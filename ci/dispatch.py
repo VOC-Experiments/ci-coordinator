@@ -17,7 +17,7 @@ from urllib.parse import urlencode
 from ci.repository import PROJECTS, REPOSITORIES, ROOT, CONFIG, supports, run, project_revision, configure, activate, dependencies, source_commit, binding, content, bind_projects, digest, missing_prerequisites
 from ci.repository import (ownership, COORDINATOR, OWNER, COORDINATOR_NAME, FEED, FEED_BRANCH, TAG, version,
                            source_tag, release_view, generation_tag, dependent_source, validate_projects, affected, prepare,
-                           work_index, cascade_blockers)
+                           work_index, cascade_blockers, requested_projects)
 from ci.publish.publication import read, write, published, TERMINAL
 
 SHA = r'[0-9a-f]{40}'
@@ -533,21 +533,26 @@ def tick(root, bundles):
                                 node.update(status='superseded', category='excluded', reason='A newer revision of this version owns the target')
                             elif reservation and supports(project, row, {project: reservation['definition']}):
                                 pass
-                            elif (any(k == key and n['status'] not in TERMINAL and n.get('request') for (_, k), n in captures.items())
+                            elif (any(k == key and n['status'] not in TERMINAL and n.get('request')
+                                      and str(n.get('source', {}).get('run')) not in state['runs'] for (_, k), n in captures.items())
                                     and tag == max((t for (x, p, t) in work if (x, p) == (row['id'], project)), key=version)):
                                 pass
                             elif missing := missing_prerequisites(project, info, {}, projects):
                                 node.update(status='unsatisfiable', category='blocked', dependencies=binding(info, required),
                                             reason='Missing prerequisite target or publication: ' + ', '.join(missing))
-                            elif (node.get('cause', generation['context'].get('cause')) == 'dependent'
-                                    and (blocked := cascade_blockers(info, required, state, row['id'], index))):
-                                if any(status in TERMINAL for status, _ in blocked.values()):
-                                    node.update(status='unsatisfiable', category='blocked', dependencies=binding(info, required),
-                                                reason='Prerequisite failed; retry the named arm: ' + ', '.join(blocked))
                             else:
                                 if changed and node.get('artifact') and CONFIG['settings']['rebuild_overlap'] and not node.get('publisher_intent'):
                                     node = dict(status='pending', attempt=0, builds=0, publications=0, requires=list(required), cause='dependent')
-                                if not node.get('publisher_intent') and (node.get('artifact') or not node.get('request')):
+                                if (node.get('cause', generation['context'].get('cause')) == 'dependent'
+                                        and (blocked := cascade_blockers(info, required, state, row['id'], index))):
+                                    node['reason'] = 'Awaiting prerequisite arms: ' + ', '.join(blocked)
+                                    if node.get('artifact') and not node.get('publisher_intent'):
+                                        node['status'] = 'pending'
+                                    if any(status in TERMINAL for status, _ in blocked.values()):
+                                        node.update(status='unsatisfiable', category='blocked', dependencies=binding(info, required),
+                                                    reason='Prerequisite failed; retry the named arm: ' + ', '.join(blocked))
+                                elif not node.get('publisher_intent') and (node.get('artifact') or not node.get('request')):
+                                    node.pop('reason', None)
                                     cause = node.get('cause', generation['context'].get('cause',
                                         'release' if project == generation['context']['release_project'] else 'dependent'))
                                     node['dependencies'] = binding(info, required)
@@ -566,8 +571,7 @@ def tick(root, bundles):
                             node.update(status='failed', reason=str(error))
                 generation.setdefault('nodes', {})[key] = node
                 observations.append((capture, key, node))
-    graph = {p: dict(values[max(values, key=version)]['definition'])
-             for p, values in state.get('requests', {}).items() if values}
+    graph = requested_projects(state.get('requests', {}))
     graph = validate_projects(graph) if graph else {}
     roots = []
     for capture, generation in state['runs'].items():
@@ -760,6 +764,7 @@ def main():
         values = receive(json.loads(os.environ['PACKAGE_REQUEST']), Path(args[0]))
     elif command == 'control':
         root, bundles = Path(args[0]), {}
+        rejected = None
         operator = os.environ.get('PACKAGE_RETRY') or os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch' and not os.environ.get('PACKAGE_REPORT')
         if operator:
             authorize_operator()
@@ -768,12 +773,18 @@ def main():
             if os.environ.get('PACKAGE_RETRY'):
                 transaction(root, dict(retry=os.environ['PACKAGE_RETRY']))
         if os.environ.get('PACKAGE_REPORT'):
-            request = json.loads(os.environ['PACKAGE_REPORT'])
-            directory = Path(os.environ['RUNNER_TEMP']) / 'callback'
-            run('gh', 'run', 'download', identity(request['capture']), '--repo', COORDINATOR, '-n', 'source-pair', '-D', str(directory))
-            apply_report(root, request, directory)
+            try:
+                request = json.loads(os.environ['PACKAGE_REPORT'])
+                directory = Path(os.environ['RUNNER_TEMP']) / 'callback'
+                run('gh', 'run', 'download', identity(request['capture']), '--repo', COORDINATOR, '-n', 'source-pair', '-D', str(directory))
+                apply_report(root, request, directory)
+            except Exception as error:
+                rejected = error
+                print('Callback rejected: ' + str(error), file=sys.stderr)
         if tick(root, bundles) and any(g.get('context', {}).get('contract') == 3 for g in read(root / 'status.json')['runs'].values()):
             run('bash', str(ROOT / 'ci/publish/status.sh'), str(root), 'project')
+        if rejected:
+            raise rejected
     else:
         raise ValueError('Unknown coordinator command')
     if values:

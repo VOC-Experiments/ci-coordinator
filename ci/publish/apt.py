@@ -7,7 +7,8 @@ import shutil
 import sys
 import tempfile
 
-from ci.repository import PROJECTS, rows, ROOT, digest, run, unchanged, signer, publication_needed, ownership, COORDINATOR, validate_package
+from ci.repository import (PROJECTS, rows, ROOT, digest, run, unchanged, signer, publication_needed,
+                           ownership, COORDINATOR, validate_package, package_metadata, package_version)
 
 
 def images(distribution, project):
@@ -21,20 +22,21 @@ def stage(suite, packages, bundle, output, distribution='raspberrypios'):
     names = set()
     versions = {}
     by_arch = {}
+    context = json.loads((bundle / 'context.json').read_text())
+    owners = ownership(dict(sources=json.loads((bundle / 'sources.json').read_text())))
+    row = dict(distribution=distribution, suite=suite)
+    expected_version = {project: package_version(row, context['versions'][project], os.environ['PACKAGE_RELEASE'])}
     for package in packages.glob('*.deb'):
-        name, architecture = run('dpkg-deb', '-f', str(package), 'Package', 'Architecture').splitlines()
-        name = name.removeprefix('Package: ')
-        architecture = architecture.removeprefix('Architecture: ')
+        fields = package_metadata(package)
+        name, architecture = fields['name'], fields['arch']
         if (name, architecture) in names:
             raise RuntimeError(f'Duplicate Debian package: {name}')
         names.add((name, architecture))
-        release = run('dpkg-deb', '-f', str(package), 'Version')
-        owner = validate_package(bundle, dict(distribution=distribution, suite=suite), package.name, name, release)
-        versions[owner] = release
+        owner = validate_package(owners, expected_version, package.name, fields, row)
+        versions[owner] = fields['version']
         by_arch.setdefault(architecture, set()).add(name)
         if (suite, architecture) not in supported:
             raise RuntimeError(f'Unexpected architecture: {architecture}')
-    owners = ownership(dict(sources=json.loads((bundle / 'sources.json').read_text())))
     required = packages / (owners[project]['package'] + '.packages')
     if not required.is_file():
         raise RuntimeError('Missing built project package inventory')

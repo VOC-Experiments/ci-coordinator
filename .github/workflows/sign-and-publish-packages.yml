@@ -76,7 +76,7 @@ jobs:
           git -C feed merge-base --is-ancestor "$commit" HEAD
           # Publish current guides and downloadable installers; keep CI tooling capture-pinned.
           mkdir -p "$RUNNER_TEMP/package-site"
-          git -C feed archive "origin/$DOCS_BRANCH" site install |
+          git -C feed archive "origin/$DOCS_BRANCH" site install keys |
             tar -x -C "$RUNNER_TEMP/package-site"
           echo "PACKAGE_SITE=$RUNNER_TEMP/package-site/site" >> "$GITHUB_ENV"
           git -C feed checkout --detach "$commit"

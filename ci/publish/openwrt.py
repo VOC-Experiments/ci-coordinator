@@ -2,6 +2,7 @@
 import gzip
 import json
 import os
+import re
 from pathlib import Path
 import tempfile
 
@@ -30,24 +31,26 @@ def sign(directory, info):
     (directory / 'build.json').write_text(json.dumps(info, indent=2) + '\n')
 
 
-def reindex(directory, previous, info):
-    """Rebase retained products without recompiling or changing captured dependencies."""
+def reindex(directory, info, controls):
+    """Index verified package bytes, including retained products absent from SDK indexes."""
     if info['series'] == '24.10':
-        paragraphs = {}
-        for path in (directory / 'Packages', previous / 'Packages'):
-            if path.exists():
-                for paragraph in path.read_text().strip().split('\n\n'):
-                    fields = dict(line.split(': ', 1) for line in paragraph.splitlines() if ': ' in line)
-                    filename = fields.get('Filename', '').removeprefix('./')
-                    if filename in info['files']:
-                        paragraphs.setdefault(filename, paragraph)
-        data = ('\n\n'.join(paragraphs[name] for name in sorted(paragraphs)) + '\n\n').encode()
+        paragraphs = []
+        for name, fields in sorted(controls.items()):
+            derived = f'Filename: {name}\nSize: {(directory / name).stat().st_size}\nSHA256sum: {digest(directory / name)}\n'
+            control = fields['control'].strip()
+            paragraphs.append(re.sub(r'(?m)^Description:', lambda match: derived + match[0], control, count=1)
+                              if re.search(r'(?m)^Description:', control) else control + '\n' + derived.rstrip())
+        data = ('\n\n'.join(paragraphs) + '\n\n').encode()
         (directory / 'Packages').write_bytes(data)
         (directory / 'Packages.gz').write_bytes(gzip.compress(data, mtime=0))
         indexes = ['Packages', 'Packages.gz']
     else:
         run('apk', 'mkndx', '--allow-untrusted', '--output', str(directory / 'packages.adb'),
             *(str(path) for path in sorted(directory.glob('*.apk'))))
+        indexed = json.loads(run('apk', 'adbdump', '--format', 'json', str(directory / 'packages.adb')))['packages']
+        if sorted(tuple(p[k] for k in ['name', 'version', 'arch']) for p in indexed) != sorted(
+                tuple(p[k] for k in ['name', 'version', 'arch']) for p in controls.values()):
+            raise ValueError('APK index does not exactly cover verified package identities')
         indexes = ['packages.adb']
     for name in indexes:
         info['files'][name] = digest(directory / name)

@@ -162,7 +162,7 @@ there is no separate homepage for the reader or notify App.
 
 **Do not repeat the coordinator credentials in every repository.** You will
 create these three App registrations, each with its own Client ID and private
-key. Both source repositories share the capture-reader credentials and share
+key. All four source repositories share the capture-reader credentials and share
 the notify credentials.
 
 | App to create | Actions permission | Contents permission | Install on | Save its credentials in |
@@ -398,8 +398,7 @@ separate from SNodeC keys and stored privately; the agent can upload them after
 App setup. Its OpenPGP key expires after seven days. Only public keys are
 committed to the coordinator. Generate usign pairs with `usign -G` as below; do
 not hand-serialize them. A locally consistent Ed25519 seed/public check does not
-replace an actual usign sign-and-verify check. Keys are capture-pinned: after a
-key correction, create a fresh capture rather than rewriting an old bundle.
+replace an actual usign sign-and-verify check. Feed keys come from the coordinator default branch. Before signing, the capture-pinned key for that family must match the deployed key byte for byte; after an authorized key correction, create fresh captures rather than rewriting old bundles. Re-signing existing rows is a separate operator procedure.
 
 For a new deployment, generate your own keys with existing operator tools:
 
@@ -585,3 +584,13 @@ The operator has configured `demo-side` and `demo-join` with the existing captur
 For onboarding, save the coordinator App installation selection **before** adding the source to `ci/projects.json`. Merely setting source secrets does not grant the coordinator access. Capture-reader and notify remain installed on `ci-coordinator` only; the source receives their narrow reader/notify credentials, never the coordinator key. Each new source activates only through its own valid version tag.
 
 The six-repository installation is now verified: [control run 39835348765](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39835348765) succeeded. Both new source notifications and captures succeeded. The join-first test retained activation while all five rows failed explicitly for missing side publications. The side was then activated, and the moved-root diamond/overlap tests are running.
+
+## Independent review correction (22 October 2026)
+
+The coordinator validates internal package namespace, version/revision and architecture before signing every own or retained package. OpenWrt 24.10 indexes are regenerated from verified package controls, including retained siblings; 25.12 indexes must cover every verified identity. The new code is deployed for live recertification; the prior empty-index failure is not called repaired until a new publication and real client proof succeed.
+
+The CAS reservation validates the prospective highest requested graph. Stale direct artifacts pass the same dependent arm gate after conversion; terminal failures keep their budgets. A registered child is no longer held by aggregate run lag. Invalid callbacks still allow reconciliation before the run fails. An unobservable capture stays reserved; recovery needs a new valid same-tag push event, not a rerun of the same source run. Failed build/publish jobs remain terminal until an operator acts or a separate new event creates new work.
+
+Do not remove a source with request records: offboarding is out of scope. Source ZIPs have origin/digest/path checks but no expanded-size quota. Availability of orphaned baseline commits is measured separately; no retention mechanism is added. Sandbox-only `live-capacity-check.yml` and demo-side's historical `capacity-probe.yml` are fixtures, excluded from canonical hash comparisons and retained until user-directed cleanup.
+
+All four source hooks are being updated to export only their own SDK staging-record files and own provides record, retaining legitimate prerequisite export/import. See the [live matrix](docs/live-validation.md) for current proof and remaining gaps.
