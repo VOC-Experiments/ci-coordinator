@@ -303,6 +303,13 @@ only these package builds. It must also read the organization's plan.
 7. Save it directly as the **ci-coordinator repository secret**
    `PACKAGES_OBSERVER_TOKEN`. Do not store it in a source repository or Git.
 
+Paste **only the generated token string**, on one line, into
+`PACKAGES_OBSERVER_TOKEN`. Do not paste its name, the creation-page URL, an
+`Authorization:` header, a shell command, quotes, or a PEM file. Avoid leading
+or trailing spaces and line breaks. A runtime error saying **invalid header
+field value for Authorization** means the stored token text must be corrected;
+it is not proof of a permission failure. The observer fails closed until fixed.
+
 The token is a secret, not a Variable. Renew it before expiry. Its ability to
 return plan and complete inventory fields is verified by actual capacity
 observation; a missing/inaccessible field is not assumed to mean zero jobs.
