@@ -7,9 +7,9 @@ This is a test plan and evidence register, not an all-green claim. Status is exp
 | L01 | coordinator, packages | Empty controller is safe | passed | 39800707102 |
 | L02 | demo-app, coordinator, packages | Own tag activates durably; missing prerequisite fails row | passed | 39801935511 |
 | L03 | demo-core, coordinator | Moved tag captures exact SHA and fresh revision | passed | 39828642106 |
-| L04 | both sources, packages | Per-row cascade recovers application without matrix barrier | partial | two-product cascade published all rows; OpenWrt 24.10 client discovery fails because its signed indexes are empty |
+| L04 | both sources, packages | Per-row cascade recovers application without matrix barrier | partial | two-product cascade published all rows; index completeness and signatures now pass; real OpenWrt client installation still awaits S2 |
 | L05 | both sources, packages | Debian package signatures, checksum and runtime | passed | apt-siblings independent verification |
-| L06 | both sources, packages | OpenWrt 24.10 x86_64/arm64 signing, verification, SDK reuse | failed | real signatures verified, but both signed Packages indexes are empty despite IPKs in the manifests; functional discovery is not proven |
+| L06 | four sources, packages | OpenWrt 24.10 x86_64/arm64 signing, verification, SDK reuse | partial | fixed indexes contain every IPK, including retained versions; independent raw-index signature/hash/gzip checks pass on both architectures;16 own-only SDK exports checked; real client installation awaits S2 |
 | L07 | both sources, packages | OpenWrt 25.12 x86_64/arm64 APK signing and SDK reuse | partial | real APK signing and publisher verification passed; independent index content/install verification remains pending |
 | L08 | coordinator | Unknown repository, malformed tag/SHA/run rejected | passed | 7 rejected requests, no reservation; runs 39830357019–39830378760; exact errors and unchanged request slot recorded |
 | L09 | coordinator | Wrong source event/run rejected | passed | 39830375493 and 39830378760 reject wrong source event/SHA before reserve |
@@ -17,20 +17,20 @@ This is a test plan and evidence register, not an all-green claim. Status is exp
 | L11 | coordinator, packages | Duplicate valid notification allocates nothing | passed | 39830382444 succeeded; no new generation or request; request record unchanged |
 | L12 | demo-app, packages | Direct older version builds exact source; highest display unchanged | passed | publisher 39832574333 succeeded; second older lifecycle 39833699291 left all rendered Markdown and highest projection unchanged in 14 samples |
 | L13 | demo-core, demo-app | Chain after older direct picks highest semver tag | passed | chain capture 39832292873 selected highest v1.0.0 after direct v0.9.0 publication |
-| L14 | demo-app, packages | Default HEAD differs; captured tag JSON/hook remain authoritative | partial | 0.9.0 capture 39832128450 uses tag-only Debian definition while main stays 1.0.0 with five rows |
-| L15 | coordinator, packages | Identical receipt replay does not sign/write feed again | passed | 39829293477 attempt 2: success, no push/signing output; all 8 target files byte-identical |
+| L14 | app, side, join, packages | Default HEAD differs; captured tag JSON/hook remain authoritative | passed in inspected captures | side child39866493931 and join child39868922328 captured after deliberately divergent main commits; source-pair ZIP/checksums and JSON/hook digests match the tag; earlier initial-capture proof alone was insufficient |
+| L15 | coordinator, packages | Identical receipt replay does not sign/write packages again | passed | 39859263723 attempt2 succeeded with a non-empty24.10 index; package files and complete manifest unchanged, no package push; concurrent status commits are separate |
 | L16 | coordinator | Forged artifact/run/attempt callback rejected | passed | wrong intent/run/job/digest rejected by distinct checks; 39831293495/39831297925/39831301620/39831305457 attempt 2; published node unchanged |
 | L17 | coordinator | Duplicate/delayed valid callback is safe | passed | 39831309086 duplicate callback succeeded; published node byte-equivalent |
 | L18 | demo-core, coordinator | Deterministic failure remains terminal over later wakes | passed | earlier missing-script/feed/export failures retained |
 | L19 | demo-core, coordinator | Authorized source rerun binds higher attempt | passed | 39824723667 attempt 2 |
 | L20 | coordinator | Operator publication retry reuses retained artifact | passed | 39826674876; no source redispatch |
 | L21 | both sources, packages | Stale dependency rejects artifact and pinned readmission | planned |  |
-| L22 | coordinator | Strict publication/dependent/direct cause priority | partial | live sequencing observed; constrained-capacity contention pending |
+| L22 | coordinator | Strict publication/dependent/direct cause priority | passed in bounded window | six-slot window:11 snapshots,3 publisher admissions,0 new build/capture intents while direct work waited; existing jobs were not preempted; exact config restored in1c269c0 |
 | L23 | organization, coordinator | Plan/headroom, active occupied jobs and backlog separation | partial | observer 39833080328 attempt 2 counted both inactive demo-side jobs, app and itself; unsaturated observation only, not full admission arithmetic |
 | L24 | coordinator | Unknown observer capacity fails closed then recovers | passed | earlier observer authentication/counter failure and recovery |
 | L25 | coordinator | Finite queue preserves callback/controller wakes | partial | pending queue observed; no claim about queue exhaustion |
 | L26 | packages | Version/sibling/SDK/by-hash retention | partial | Debian siblings/by-hash passed; older-version and OpenWrt sibling checks pending |
-| L27 | packages | Highest pending/failure status; real job links only | planned |  |
+| L27 | packages | Highest pending/failure status; real job links only | passed in inspected failure | feed040ae335 renders side1.2.0-r10 failed with its real job link, no older success fallback; ledger/render transaction timing recorded separately |
 | L28 | coordinator | Capture expiry and artifact expiry handling | blocked | requires an isolated expiry fixture or waiting for actual expiry; no ledger fabrication |
 | L29 | coordinator | Ambiguous dispatch, transient API and lost callback recovery | partial | cancel/rerun/retry tested; real API fault injection not configured |
 | L30 | four sources, coordinator | Three-level chain and diamond: zero early join, exactly one join | converged, not certified | all five rows converged under root 39836077535, with six join source admissions; captures/artifacts/publication audit and deliberate scenarios remain pending |
@@ -119,14 +119,24 @@ missing-core reason. These lower test tags do not replace the highest graph.
 
 ## Review correction and new evidence requirements
 
-The fixed coordinator is byte-identical to the locally verified canonical production files (configuration, keys, site content and sandbox-only workflows excluded). The offline run passed 280 tests with one missing-OpenWrt-tools skip, plus28 additional checks; the completed review matrix has24 passing tests. Expanded full discovery is recorded separately. These counts do not prove live client installability.
+The fixed coordinator is byte-identical to the locally verified canonical production files (configuration, keys, site content and sandbox-only workflows excluded). The frozen offline run passed285 tests (284 passed, one missing-OpenWrt-tools skip), plus28 additional checks and22 static checks. It includes25 review methods, including the reproduced IPK control-paragraph injection regression. These counts do not prove live client installability.
 
 | ID | Scope | Current outcome |
 | --- | --- | --- |
-| L36 | Namespace spoof, lower fixture tags; Debian/RPM/opkg/APK | Required negative publisher test; pending on fixed tooling |
+| L36 | Namespace spoof, lower fixture tags; Debian/RPM/opkg/APK | Passed: six real publisher rejections for core v0.7.43; package manifests unchanged (RPM subtree stays absent). Join v0.7.42 wrong-version artifact also rejected. Extra control-paragraph rejection is a new reader regression. |
 | L37 | Feed public keys versus deployed default-branch authority | Offline key-regression checks pass; verify after each new publication |
 | L38 | Registered child while parent aggregate run lags | Offline public tick regression passes; live observation pending |
 
 D02–D08 require deliberate sequencing and an independent audit of held capture intents, child builds, raw arm facts, artifact contents and exact publisher snapshots. Prior convergence is not exactly-once certification. The auditor includes duplicate and stale-arm negative self-tests. Local mocks do not certify real signatures or package installation. Official disposable OpenWrt client rootfs tests need the work order's separate S2 approval; run/artifact deletion, forced budget exhaustion and new permissions need S3.
 
 Read-only observer accounting reports actual API commands/rate limits separately from the coordinator's static cost formula. N5 retains an unobservable request and its commitments; a new verified source push for the same tag replaces the request through CAS. A 404 alone never proves absence. N10 probes baseline commits by exact SHA and measured age, without changing the accepted parentless writer.
+
+## Verified reader follow-up
+
+The trusted reader now rejects malformed controls and extra body paragraphs; one IPK cannot inject an unvalidated second index entry. Both publisher-boundary subtests failed before the predicate correction; all16 inspected real SDK IPKs are accepted by the actual reader. This adds one net canonical production line to the approved correction. Earlier sandbox generations retain their captured tooling; the new deployment is recorded separately from7cd30df and its config-only descendants.
+
+The first side1.2 source rerun succeeded, but its original row was superseded by a fresh capture after a concurrent framework baseline change. This is not called isolated operator-only recovery. The next D06 fixture keeps the framework steady; the later D03/D04 fixture holds only one cascade arm while independent rows continue. No CI controller timer or ledger field is added.
+
+The first capacity fixture put capacity at the top level and was rejected before ledger processing. It was restored, then settings.capacity=6 was validated and tested for eight minutes, then restored byte for byte. Those failures remain evidence rather than being counted as passing contention checks.
+
+Existing sandbox-only live-capacity-check.yml now instruments the actual capacity function with REST call counts, elapsed time and shared-PAT rate observations. It remains a fixture excluded from canonical code identity, and still asserts both unrelated probe jobs are counted. No parallel observer or permission change is introduced.

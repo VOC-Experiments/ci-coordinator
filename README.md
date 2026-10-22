@@ -594,3 +594,5 @@ The CAS reservation validates the prospective highest requested graph. Stale dir
 Do not remove a source with request records: offboarding is out of scope. Source ZIPs have origin/digest/path checks but no expanded-size quota. Availability of orphaned baseline commits is measured separately; no retention mechanism is added. Sandbox-only `live-capacity-check.yml` and demo-side's historical `capacity-probe.yml` are fixtures, excluded from canonical hash comparisons and retained until user-directed cleanup.
 
 All four source hooks are being updated to export only their own SDK staging-record files and own provides record, retaining legitimate prerequisite export/import. See the [live matrix](docs/live-validation.md) for current proof and remaining gaps.
+
+The latest reader correction and live evidence are recorded in [the validation matrix](docs/live-validation.md#verified-reader-follow-up). Official OpenWrt client-rootfs tests require the work order's separate S2 approval; package/index validation and real signing alone do not establish installation.

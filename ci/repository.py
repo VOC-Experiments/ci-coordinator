@@ -401,8 +401,9 @@ def package_metadata(path):
         raise ValueError('Unsupported package metadata: ' + path.name)
     if control:
         parsed = Parser().parsestr(control)
-        if any(len(parsed.get_all(k, [])) != 1 for k in ['Package', 'Version', 'Architecture']):
-            raise ValueError('Package needs unique name, version and architecture: ' + path.name)
+        if (parsed.defects or parsed.is_multipart() or parsed.get_payload().strip()
+                or any(len(parsed.get_all(k, [])) != 1 for k in ['Package', 'Version', 'Architecture'])):
+            raise ValueError('Package needs one control paragraph with unique name, version and architecture: ' + path.name)
         if path.suffix == '.ipk' and any(k in parsed for k in ['Filename', 'Size', 'SHA256sum']):
             raise ValueError('IPK control must not supply generated index fields: ' + path.name)
         fields = dict(zip(['name', 'version', 'arch'], (parsed[k] for k in ['Package', 'Version', 'Architecture'])), control=control)
