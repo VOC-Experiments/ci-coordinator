@@ -1,0 +1,10 @@
+{
+  "repositories": [
+    "demo-core",
+    "demo-app"
+  ],
+  "feed": {
+    "repository": "packages",
+    "branch": "main"
+  }
+}
