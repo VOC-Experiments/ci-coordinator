@@ -8,8 +8,5 @@
   "feed": {
     "repository": "packages",
     "branch": "main"
-  },
-  "settings": {
-    "capacity": 6
   }
 }
