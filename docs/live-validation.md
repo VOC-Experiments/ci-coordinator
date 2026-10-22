@@ -57,7 +57,7 @@ Before the first tags of side and join:
 
 No tag has been created for either new repository during preparation. A failed first build must keep activation, but a credential failure is not a useful substitute for the diamond test.
 
-## Diamond scenario matrix (live execution awaits source credentials)
+## Diamond scenario matrix (credential setup confirmed; live execution underway)
 
 | Case | Root / arms / join action | Required per-row evidence |
 | --- | --- | --- |
@@ -75,4 +75,6 @@ No tag has been created for either new repository during preparation. A failed f
 - Adding uninstalled repositories to the allowlist caused App token HTTP 422. The names were removed until installation setup is complete; no permission widening was attempted. Callback cases were rerun and verified against their actual rejection errors.
 - The first Debian-only 0.9.0 fixture retained an extra OpenWrt hook. Strict validation correctly rejected it; the fixture was corrected and its tag moved. This is not reported as a CI defect.
 - The GitHub Git-tree API rejected workflow-file writes for the existing CLI credential. Existing Git SSH access published the fixtures through disposable bare repositories instead; no OAuth scope was widened.
-- The local four-source schema check uses a proposed master fixture. The live master intentionally stays on the two fully configured sources.
+- The local four-source schema check uses a proposed master fixture. The master was expanded to four sources after the operator confirmed installation and secret setup.
+
+Operator confirmed installation setup on 22 October 2026. Both new repositories expose the expected secret names and client-ID variables. Actual token minting and source callbacks are verified by their first live tag runs; secret values are never read back or logged. The missing-arm test intentionally activates join before side.
