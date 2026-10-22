@@ -12,7 +12,7 @@ expected repository credential entries are configured. Secret contents were
 checked manually by the operator; runtime authentication and signing are tested
 separately below.
 
-**Live validation is underway, currently blocked at the observer token.**
+**Live validation is underway, currently blocked at inventory validation.**
 The empty-feed controller, tag notifications, moved-tag capture, revision
 reservation and persistent activation have passed on GitHub. Activating demo-app
 before demo-core correctly closed all five rows with missing-prerequisite
@@ -26,11 +26,18 @@ OpenWrt signing-tool skip** (257 tests total), plus all 27 contract, wrapper,
 lint and syntax checks. Both offline deployments and this sandbox have identical
 hashes for all 22 coordinator core/workflow files.
 
-The observer currently fails with **invalid header field value for Authorization**.
-Replace the repository secret `PACKAGES_OBSERVER_TOKEN` with only its token
-string, as described in section 3. Capacity remains unknown, so the controller
-admits no builds. Package compilation, publication, real OpenWrt signatures and
-live cascade recovery remain unverified; no capacity bypass has been applied.
+The replacement observer token now authenticates, reads the organization plan,
+and lists all four repositories. GitHub omits both `total_private_repos` and
+`owned_private_repos` from this token's organization response. The CI currently
+requires the former count to independently check inventory completeness, so
+capacity remains unknown and no builds are admitted. This is an incompatibility
+in the current validation contract, not another malformed-token failure.
+
+Do not regenerate the token or grant write access to bypass this check. The
+choice between relying on the operator-verified **All repositories** token scope
+and requiring independently verifiable scope/count evidence is a material
+validation decision. No such policy change has been applied. Package compilation,
+publication, real OpenWrt signatures and live cascade recovery remain unverified.
 
 For a new deployment, follow [the credential steps below](#2-create-the-three-github-apps)
 from the beginning. In this prepared sandbox, do not recreate the existing Apps.
