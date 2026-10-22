@@ -8,7 +8,7 @@ The [live test matrix](docs/live-validation.md) tracks guarantees across all san
 
 ## What you need to do now
 
-The organization and four repositories exist, and the coordinator workflows,
+The organization and six repositories exist, and the coordinator workflows,
 dummy sources and fresh publication state are pushed. All three Apps and the
 expected repository credential entries are configured. Secret contents were
 checked manually by the operator; runtime authentication and signing are tested
@@ -58,12 +58,14 @@ form. Do not paste keys or tokens into chat. This local helper is temporary
 operator tooling; the CI does not depend on it. The manual procedure below is
 complete without that helper.
 
-| Repository | Purpose | Initial state |
+| Repository | Purpose | Role |
 | --- | --- | --- |
 | [ci-coordinator](https://github.com/VOC-Experiments/ci-coordinator) | Capture, scheduling, verification, central signing/publication | Canonical coordinator deployed; live validation underway |
-| [packages](https://github.com/VOC-Experiments/packages) | Public signed feed and status | Fresh `status.json`, no product active |
-| [demo-core](https://github.com/VOC-Experiments/demo-core) | Tiny C library and executable | Source-owned JSON and Debian/OpenWrt hooks, no activation tag yet |
-| [demo-app](https://github.com/VOC-Experiments/demo-app) | Tiny C executable linked to demo-core | Source-owned JSON and hooks, depends on demo-core |
+| [packages](https://github.com/VOC-Experiments/packages) | Public signed feed and status | Isolated signed feed and runtime ledger |
+| [demo-core](https://github.com/VOC-Experiments/demo-core) | Tiny C library and executable | Diamond root; source-owned JSON and Debian/OpenWrt hooks |
+| [demo-app](https://github.com/VOC-Experiments/demo-app) | Tiny C executable linked to demo-core | First diamond arm, depends on demo-core |
+| [demo-side](https://github.com/VOC-Experiments/demo-side) | Library and executable using demo-core | Second diamond arm |
+| [demo-join](https://github.com/VOC-Experiments/demo-join) | Executable using both arms | Diamond join; depends on demo-app and demo-side |
 
 Each source requests Debian trixie/amd64 and OpenWrt x86_64 and
 `aarch64_generic` (`armsr/armv8`). OpenWrt 24.10.8 tests opkg/usign;
@@ -567,3 +569,5 @@ More integration detail: [ci/README.md](ci/README.md).
 The operator has configured `demo-side` and `demo-join` with the existing capture-reader/notify repository secrets. Their public client-ID variables are set. The coordinator App installation was updated to include all six sandbox repositories: `ci-coordinator`, `packages`, `demo-core`, `demo-app`, `demo-side`, `demo-join`. Actual four-source token minting is checked before activation; the result is tracked in the [live matrix](docs/live-validation.md).
 
 For onboarding, save the coordinator App installation selection **before** adding the source to `ci/projects.json`. Merely setting source secrets does not grant the coordinator access. Capture-reader and notify remain installed on `ci-coordinator` only; the source receives their narrow reader/notify credentials, never the coordinator key. Each new source activates only through its own valid version tag.
+
+The six-repository installation is now verified: [control run 39835348765](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39835348765) succeeded. Both new source notifications and captures succeeded. The join-first test retained activation while all five rows failed explicitly for missing side publications. The side was then activated, and the moved-root diamond/overlap tests are running.
