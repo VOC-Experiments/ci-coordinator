@@ -12,28 +12,34 @@ expected repository credential entries are configured. Secret contents were
 checked manually by the operator; runtime authentication and signing are tested
 separately below.
 
-**Live validation is underway.**
+**Live validation is underway (22 October 2026).**
 The empty-feed controller, tag notifications, moved-tag capture, revision
 reservation and persistent activation have passed on GitHub. Activating demo-app
-before demo-core correctly closed all five rows with missing-prerequisite
-reasons. The later demo-core capture succeeded and its five rows are pending.
+before demo-core correctly failed all five rows with missing-prerequisite
+reasons, while keeping activation. Subsequent Debian core and application builds
+published successfully; independent checks verified both APT signatures, every
+listed package checksum, package execution, sibling retention and by-hash files.
+All four OpenWrt source rows have built successfully. OpenWrt 25.12 x86_64's
+central APK signing, verification and publication have passed.
 
-The first capture exposed a duplicate Git Authorization header from checkout
-and the status writer. The shared writer now clears inherited headers before
-using its feed-write token; the moved-tag capture verified the correction live.
-The complete local suite then passed **256 tests, zero failures/errors, one
-OpenWrt signing-tool skip** (257 tests total), plus all 27 contract, wrapper,
-lint and syntax checks. Both offline deployments and this sandbox have identical
-hashes for all 22 coordinator core/workflow files.
+The frozen local run executed **260 tests: 259 passed, zero failures/errors,
+one skipped** because local OpenWrt signing tools are unavailable. All 27
+contract, wrapper, lint and syntax checks passed. Both offline deployments and
+the sandbox committed tree match for all 22 generic core/workflow files.
 
-The observer token authenticates, reads the organization plan, and lists all
-four repositories. GitHub omits private-repository counters for this token.
-The approved CI policy now accepts the fully paginated repository listing
-without requiring those optional counters, relying on the mandatory
-**All repositories** observer scope described in section 3. Known counter
-mismatches and API/listing failures still block admission. Pending builds
-are being resumed; package publication, real OpenWrt signatures and live
-cascade recovery are not yet claimed as verified.
+Live testing corrected a duplicate Git Authorization header, an ignored platform
+script directory, an SDK feed-name restriction and relative SDK-export operands.
+The first 24.10 publications were rejected because the assisted setup script
+encoded its usign key pair inconsistently. The operator approved repair of that
+sandbox-only key pair and secret. The corrected public key is committed; a fresh
+capture is required because verification keys are capture-pinned. Successful
+24.10 publication and complete live cascade recovery remain pending.
+
+The observer PAT authenticates, reads the organization plan, and lists all four
+repositories. The approved policy accepts the complete paginated inventory when
+GitHub omits optional private-repository counters, relying on mandatory
+**All repositories** scope (section 3). Known counter mismatches and API/listing
+failures still block admission. Capacity admission has now succeeded live.
 
 For a new deployment, follow [the credential steps below](#2-create-the-three-github-apps)
 from the beginning. In this prepared sandbox, do not recreate the existing Apps.
@@ -369,7 +375,10 @@ All private signing keys exist in **ci-coordinator Secrets only**:
 The current assisted experiment already has newly generated test keys. They are
 separate from SNodeC keys and stored privately; the agent can upload them after
 App setup. Its OpenPGP key expires after seven days. Only public keys are
-committed to the coordinator.
+committed to the coordinator. Generate usign pairs with `usign -G` as below; do
+not hand-serialize them. A locally consistent Ed25519 seed/public check does not
+replace an actual usign sign-and-verify check. Keys are capture-pinned: after a
+key correction, create a fresh capture rather than rewriting an old bundle.
 
 For a new deployment, generate your own keys with existing operator tools:
 
