@@ -12,13 +12,25 @@ expected repository credential entries are configured. Secret contents were
 checked manually by the operator; runtime authentication and signing are tested
 separately below.
 
-**Live validation is underway.** The empty-feed control run passed, and the first
-source tag notification authenticated and reached the coordinator. Its capture
-then exposed a duplicate Git Authorization header from checkout and the status
-writer. The shared writer now explicitly clears inherited headers before using
-its feed-write token. A regression reproduced the defect before the correction
-and passes afterwards. Complete package publication, real OpenWrt signatures,
-observer access and cascade recovery are not yet claimed as verified.
+**Live validation is underway, currently blocked at the observer token.**
+The empty-feed controller, tag notifications, moved-tag capture, revision
+reservation and persistent activation have passed on GitHub. Activating demo-app
+before demo-core correctly closed all five rows with missing-prerequisite
+reasons. The later demo-core capture succeeded and its five rows are pending.
+
+The first capture exposed a duplicate Git Authorization header from checkout
+and the status writer. The shared writer now clears inherited headers before
+using its feed-write token; the moved-tag capture verified the correction live.
+The complete local suite then passed **256 tests, zero failures/errors, one
+OpenWrt signing-tool skip** (257 tests total), plus all 27 contract, wrapper,
+lint and syntax checks. Both offline deployments and this sandbox have identical
+hashes for all 22 coordinator core/workflow files.
+
+The observer currently fails with **invalid header field value for Authorization**.
+Replace the repository secret `PACKAGES_OBSERVER_TOKEN` with only its token
+string, as described in section 3. Capacity remains unknown, so the controller
+admits no builds. Package compilation, publication, real OpenWrt signatures and
+live cascade recovery remain unverified; no capacity bypass has been applied.
 
 For a new deployment, follow [the credential steps below](#2-create-the-three-github-apps)
 from the beginning. In this prepared sandbox, do not recreate the existing Apps.
