@@ -1,9 +1,7 @@
 {
   "repositories": [
     "demo-core",
-    "demo-app",
-    "demo-side",
-    "demo-join"
+    "demo-app"
   ],
   "feed": {
     "repository": "packages",

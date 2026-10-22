@@ -78,3 +78,11 @@ No tag has been created for either new repository during preparation. A failed f
 - The local four-source schema check uses a proposed master fixture. The master was expanded to four sources after the operator confirmed installation and secret setup.
 
 Operator confirmed installation setup on 22 October 2026. Both new repositories expose the expected secret names and client-ID variables. Actual token minting and source callbacks are verified by their first live tag runs; secret values are never read back or logged. The missing-arm test intentionally activates join before side.
+
+## Latest setup check
+
+Operator supplied both source secret names (metadata verified), but [control run 39834797076](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39834797076) still failed coordinator App-token minting with HTTP 422: at least one requested repository is inaccessible to the parent installation. Client ID is the expected `Iv23liMgaVixcN2WcIoU`. The master was returned to the two configured sources to preserve operation. Neither new source has an activation tag.
+
+Remaining operator action: open [coordinator App installation 174142534](https://github.com/organizations/VOC-Experiments/settings/installations/174142534), select both `demo-side` and `demo-join` in addition to the existing four repositories, then save. This is the coordinator App, not the capture-reader or notify App. No permission types or PAT scope need changing.
+
+The completed older-tag lifecycle was sampled 14 times: notification/pending/publishing/published. All rendered Markdown blobs and highest display projection stayed identical; raw ledger and publication advanced. Source run/build and publication completed normally.
