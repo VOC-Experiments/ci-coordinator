@@ -214,7 +214,9 @@ def capacity():
         more = len(batch) == 100
         page += 1
     if 'total_private_repos' not in org or len(repos) != org['public_repos'] + org['total_private_repos']:
-        raise ValueError('Observer cannot see the complete organization inventory, including private repositories')
+        raise ValueError('Observer cannot see the complete organization inventory, including private repositories: '
+                         f'listed={len(repos)}, public_repos={org.get("public_repos")}, '
+                         f'total_private_repos={org.get("total_private_repos")}; verify organization metadata and token repository scope')
     occupied, backlog = {}, 0
     for repo in repos:
         active = {r['id']: r for status in ('queued', 'waiting', 'pending', 'requested', 'in_progress')
