@@ -1,0 +1,26 @@
+name: Live capacity check
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  observe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Observe unrelated hosted jobs with the real read-only PAT
+        env:
+          OBSERVER_TOKEN: ${{ secrets.PACKAGES_OBSERVER_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json
+          from ci.dispatch import capacity
+          free, occupied = capacity()
+          facts = [dict(repository=repo, job=job, **value) for (repo, job), value in occupied.items()]
+          print(json.dumps(dict(free_before_headroom=free, occupied=facts), sort_keys=True))
+          unrelated = [item for item in facts if item['repository'] == 'demo-side' and item['name'].startswith('occupy (')]
+          assert len(unrelated) == 2, 'Expected both bounded unrelated probe jobs to be running'
+          PY
