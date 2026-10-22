@@ -12,7 +12,7 @@ expected repository credential entries are configured. Secret contents were
 checked manually by the operator; runtime authentication and signing are tested
 separately below.
 
-**Live validation is underway, currently blocked at inventory validation.**
+**Live validation is underway.**
 The empty-feed controller, tag notifications, moved-tag capture, revision
 reservation and persistent activation have passed on GitHub. Activating demo-app
 before demo-core correctly closed all five rows with missing-prerequisite
@@ -26,18 +26,14 @@ OpenWrt signing-tool skip** (257 tests total), plus all 27 contract, wrapper,
 lint and syntax checks. Both offline deployments and this sandbox have identical
 hashes for all 22 coordinator core/workflow files.
 
-The replacement observer token now authenticates, reads the organization plan,
-and lists all four repositories. GitHub omits both `total_private_repos` and
-`owned_private_repos` from this token's organization response. The CI currently
-requires the former count to independently check inventory completeness, so
-capacity remains unknown and no builds are admitted. This is an incompatibility
-in the current validation contract, not another malformed-token failure.
-
-Do not regenerate the token or grant write access to bypass this check. The
-choice between relying on the operator-verified **All repositories** token scope
-and requiring independently verifiable scope/count evidence is a material
-validation decision. No such policy change has been applied. Package compilation,
-publication, real OpenWrt signatures and live cascade recovery remain unverified.
+The observer token authenticates, reads the organization plan, and lists all
+four repositories. GitHub omits private-repository counters for this token.
+The approved CI policy now accepts the fully paginated repository listing
+without requiring those optional counters, relying on the mandatory
+**All repositories** observer scope described in section 3. Known counter
+mismatches and API/listing failures still block admission. Pending builds
+are being resumed; package publication, real OpenWrt signatures and live
+cascade recovery are not yet claimed as verified.
 
 For a new deployment, follow [the credential steps below](#2-create-the-three-github-apps)
 from the beginning. In this prepared sandbox, do not recreate the existing Apps.
@@ -321,6 +317,21 @@ only these package builds. It must also read the organization's plan.
    the token for the organization if GitHub requires owner approval.
 7. Save it directly as the **ci-coordinator repository secret**
    `PACKAGES_OBSERVER_TOKEN`. Do not store it in a source repository or Git.
+
+**All repositories is mandatory for the observer PAT in every deployment.**
+It includes current and future private repositories automatically. With
+**Only select repositories**, a private repository must be explicitly selected
+or it is invisible to the observer: its running jobs are ignored entirely in
+capacity accounting. This can cause excess admissions and queueing. The CI
+cannot independently detect that omission when GitHub provides no private
+repository counter. Keep All repositories selected when editing or renewing
+the token. This requirement concerns the observer PAT, not the three Apps or
+the product allowlist in `ci/projects.json`.
+
+The CI always reads every repository-listing page. It cross-checks repository
+counts when supplied, but does not require the optional private counter or
+assume a missing counter means zero private repositories. API errors, failed
+pages, unknown plans and unknown runner allocations still block admission.
 
 Paste **only the generated token string**, on one line, into
 `PACKAGES_OBSERVER_TOKEN`. Do not paste its name, the creation-page URL, an

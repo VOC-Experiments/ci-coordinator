@@ -213,7 +213,7 @@ def capacity():
         repos.extend(batch)
         more = len(batch) == 100
         page += 1
-    if 'total_private_repos' not in org or len(repos) != org['public_repos'] + org['total_private_repos']:
+    if 'total_private_repos' in org and len(repos) != org['public_repos'] + org['total_private_repos']:
         raise ValueError('Observer cannot see the complete organization inventory, including private repositories: '
                          f'listed={len(repos)}, public_repos={org.get("public_repos")}, '
                          f'total_private_repos={org.get("total_private_repos")}, owned_private_repos={org.get("owned_private_repos")}; '
