@@ -87,7 +87,7 @@ not need to fill every section.
 | --- | --- |
 | **GitHub App name** | Coordinator: `VOC Experiments CI Coordinator`. Later repeat with `VOC Experiments CI Capture Reader` and `VOC Experiments CI Notify`. Names must be unique; a different name does not change the role. |
 | **Description** | Optional; for example `Isolated package CI coordinator for VOC-Experiments`. |
-| **Homepage URL** | `https://github.com/VOC-Experiments/ci-coordinator` |
+| **Homepage URL** | Use `https://github.com/VOC-Experiments/ci-coordinator` for **all three Apps**: Coordinator, Capture Reader and Notify. |
 | **Redirect URL / callback URLs** | Leave empty. This CI does not use user OAuth authorization. |
 | **Allow mismatching** | Leave unchecked. |
 | **Expire user authorization tokens** | Leave the default; this CI does not use these tokens. |
@@ -100,6 +100,11 @@ not need to fill every section.
 | **Organization, Account and Enterprise permissions** | Leave unchanged, with no optional permissions granted. The observer token is configured separately in section 3. |
 | **Subscribe to events** | Leave **every event unchecked**, including Workflow dispatch. These are webhook subscriptions; they are not needed to dispatch an Actions workflow. |
 | **Where can this GitHub App be installed?** | Select **Only on this account** (`VOC-Experiments`), not Any account. |
+
+**All three Apps use the same Homepage URL:**
+`https://github.com/VOC-Experiments/ci-coordinator`. This is an informational
+link. Each App's permissions and installation selection determine its role;
+there is no separate homepage for the reader or notify App.
 
 ### Before you start: three Apps, three different roles
 
@@ -168,8 +173,8 @@ It lets source workflows read coordinator captures and tooling.
 
 1. Open [New organization GitHub App](https://github.com/organizations/VOC-Experiments/settings/apps/new).
 2. Enter **GitHub App name:** `VOC Experiments CI Capture Reader`.
-3. Use the same common form fields above: the coordinator Homepage URL,
-   **Webhook Active unchecked**, empty callback/setup URLs, **Only on this account**.
+3. Set **Homepage URL:** `https://github.com/VOC-Experiments/ci-coordinator`. Use
+   **Webhook Active unchecked**, empty callback/setup URLs, and **Only on this account**.
 4. Set **Actions → Read-only** and **Contents → Read-only**. Leave other optional
    permissions at No access, including Workflows; leave all events unchecked.
 5. Click **Create GitHub App**. Copy this **Capture Reader App's Client ID**.
@@ -201,8 +206,8 @@ notify and call back to the coordinator.
 
 1. Open [New organization GitHub App](https://github.com/organizations/VOC-Experiments/settings/apps/new).
 2. Enter **GitHub App name:** `VOC Experiments CI Notify`.
-3. Use the common form fields above: the coordinator Homepage URL,
-   **Webhook Active unchecked**, empty callback/setup URLs, **Only on this account**.
+3. Set **Homepage URL:** `https://github.com/VOC-Experiments/ci-coordinator`. Use
+   **Webhook Active unchecked**, empty callback/setup URLs, and **Only on this account**.
 4. Set **Actions → Read and write**. Leave **Contents → No access** and every other
    optional permission at No access, including Workflows. Select no events.
 5. Click **Create GitHub App**. Copy this **Notify App's Client ID**.
