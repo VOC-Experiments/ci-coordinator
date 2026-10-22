@@ -765,4 +765,4 @@ if __name__ == '__main__':
     else:
         {'prepare': prepare, 'check': unchanged, 'stage': stage, 'publish': publish,
          'sdk-dependency': sdk_dependency, 'sdk-export': sdk_export}[command](
-            *(Path(arg).resolve() for arg in args))
+            *(Path(arg).resolve() if command != 'sdk-export' or index < 2 else Path(arg) for index, arg in enumerate(args)))
