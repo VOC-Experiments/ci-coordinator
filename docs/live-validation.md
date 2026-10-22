@@ -7,16 +7,16 @@ This is a test plan and evidence register, not an all-green claim. Status is exp
 | L01 | coordinator, packages | Empty controller is safe | passed | 39800707102 |
 | L02 | demo-app, coordinator, packages | Own tag activates durably; missing prerequisite fails row | passed | 39801935511 |
 | L03 | demo-core, coordinator | Moved tag captures exact SHA and fresh revision | passed | 39828642106 |
-| L04 | both sources, packages | Per-row cascade recovers application without matrix barrier | running | current five-row cascade |
+| L04 | both sources, packages | Per-row cascade recovers application without matrix barrier | partial | two-product cascade published all rows; OpenWrt 24.10 client discovery fails because its signed indexes are empty |
 | L05 | both sources, packages | Debian package signatures, checksum and runtime | passed | apt-siblings independent verification |
-| L06 | both sources, packages | OpenWrt 24.10 x86_64/arm64 signing, verification, SDK reuse | running | core publishers 39829293477 and 39829430282 passed; application pending |
-| L07 | both sources, packages | OpenWrt 25.12 x86_64/arm64 APK signing and SDK reuse | running | core publication passed; application pending |
+| L06 | both sources, packages | OpenWrt 24.10 x86_64/arm64 signing, verification, SDK reuse | failed | real signatures verified, but both signed Packages indexes are empty despite IPKs in the manifests; functional discovery is not proven |
+| L07 | both sources, packages | OpenWrt 25.12 x86_64/arm64 APK signing and SDK reuse | partial | real APK signing and publisher verification passed; independent index content/install verification remains pending |
 | L08 | coordinator | Unknown repository, malformed tag/SHA/run rejected | passed | 7 rejected requests, no reservation; runs 39830357019–39830378760; exact errors and unchanged request slot recorded |
 | L09 | coordinator | Wrong source event/run rejected | passed | 39830375493 and 39830378760 reject wrong source event/SHA before reserve |
 | L10 | demo-app, coordinator | Tag/VERSION mismatch rejected before reservation | passed | 39831820312 rejects tag/VERSION mismatch; source 39831372661 rejects leading-zero tag before notify |
 | L11 | coordinator, packages | Duplicate valid notification allocates nothing | passed | 39830382444 succeeded; no new generation or request; request record unchanged |
-| L12 | demo-app, packages | Direct older version builds exact source; highest display unchanged | running | tag-only 5650a807, VERSION 0.9.0, Debian-only JSON; source build passed; publisher 39832574333 pending |
-| L13 | demo-core, demo-app | Chain after older direct picks highest semver tag | planned |  |
+| L12 | demo-app, packages | Direct older version builds exact source; highest display unchanged | passed | publisher 39832574333 succeeded; second older lifecycle 39833699291 left all rendered Markdown and highest projection unchanged in 14 samples |
+| L13 | demo-core, demo-app | Chain after older direct picks highest semver tag | passed | chain capture 39832292873 selected highest v1.0.0 after direct v0.9.0 publication |
 | L14 | demo-app, packages | Default HEAD differs; captured tag JSON/hook remain authoritative | partial | 0.9.0 capture 39832128450 uses tag-only Debian definition while main stays 1.0.0 with five rows |
 | L15 | coordinator, packages | Identical receipt replay does not sign/write feed again | passed | 39829293477 attempt 2: success, no push/signing output; all 8 target files byte-identical |
 | L16 | coordinator | Forged artifact/run/attempt callback rejected | passed | wrong intent/run/job/digest rejected by distinct checks; 39831293495/39831297925/39831301620/39831305457 attempt 2; published node unchanged |
@@ -26,27 +26,27 @@ This is a test plan and evidence register, not an all-green claim. Status is exp
 | L20 | coordinator | Operator publication retry reuses retained artifact | passed | 39826674876; no source redispatch |
 | L21 | both sources, packages | Stale dependency rejects artifact and pinned readmission | planned |  |
 | L22 | coordinator | Strict publication/dependent/direct cause priority | partial | live sequencing observed; constrained-capacity contention pending |
-| L23 | organization, coordinator | Plan/headroom, active occupied jobs and backlog separation | partial | 39832578690: two bounded hosted jobs in inactive demo-side; observation correlation pending; busy publisher may correctly skip scan |
+| L23 | organization, coordinator | Plan/headroom, active occupied jobs and backlog separation | partial | observer 39833080328 attempt 2 counted both inactive demo-side jobs, app and itself; unsaturated observation only, not full admission arithmetic |
 | L24 | coordinator | Unknown observer capacity fails closed then recovers | passed | earlier observer authentication/counter failure and recovery |
 | L25 | coordinator | Finite queue preserves callback/controller wakes | partial | pending queue observed; no claim about queue exhaustion |
 | L26 | packages | Version/sibling/SDK/by-hash retention | partial | Debian siblings/by-hash passed; older-version and OpenWrt sibling checks pending |
 | L27 | packages | Highest pending/failure status; real job links only | planned |  |
 | L28 | coordinator | Capture expiry and artifact expiry handling | blocked | requires an isolated expiry fixture or waiting for actual expiry; no ledger fabrication |
 | L29 | coordinator | Ambiguous dispatch, transient API and lost callback recovery | partial | cancel/rerun/retry tested; real API fault injection not configured |
-| L30 | four sources, coordinator | Three-level chain and diamond: zero early join, exactly one join | setup pending | four source repositories now exist; local schema and C runtime pass; coordinator App installation and two secrets per new source still required |
+| L30 | four sources, coordinator | Three-level chain and diamond: zero early join, exactly one join | running | six-repository App minting succeeded in 39835348765; four-source activation ran; Debian join published; OpenWrt joins and exact-once/capture audit remain incomplete |
 | L31 | organization, coordinator | Private unrelated repository visibility and occupied-job count | blocked | needs private test repository plus corresponding installation visibility review |
 | L32 | all repositories | No signing secrets/feed write/sibling reads in source credentials | partial | narrow token minting succeeds; negative permission probes pending |
 | L33 | coordinator, packages | Concurrent status and publication CAS preserve both outcomes | partial | real lease conflict recovered; deliberately timed race pending |
 | L34 | coordinator | Separate source/publication budgets and operator recovery | partial | publication retry and source rerun passed; three-attempt exhaustion pending |
 | L35 | all repositories | Reusable unchanged core across unrelated deployments | passed locally | two offline deployments; sandbox committed generic code matches 22 files |
 
-The current live graph is `demo-core → demo-app`, each with Debian trixie amd64 and OpenWrt 24.10/25.12 x86_64 and aarch64_generic. A live diamond requires two additional products; source tokens retain their DP/own-source boundary. No permission widening is performed by this plan.
+The current live graph is `demo-core → {demo-app, demo-side} → demo-join`, with Debian trixie amd64 and OpenWrt 24.10/25.12 x86_64 and aarch64_generic. Source tokens retain their coordinator/own-source boundary. All six repositories are configured; installation minting and both new source notification paths succeeded.
 
 ## Four-source diamond setup
 
 The sources are [demo-core](https://github.com/VOC-Experiments/demo-core), [demo-app](https://github.com/VOC-Experiments/demo-app), [demo-side](https://github.com/VOC-Experiments/demo-side) and [demo-join](https://github.com/VOC-Experiments/demo-join). Graph: `core → {app, side} → join`. All four source JSON files request five rows. No extra source checkout was created; the new fixtures were prepared through disposable bare Git repositories under the evidence directory.
 
-The coordinator allowlist remains on the two configured sources until installation setup is complete: token minting requires installation access to every allowlisted repository, even before activation. Add the new allowlist entries only after step 2 below.
+The coordinator allowlist now contains all four sources. Setup below has been completed and verified by control run 39835348765; token minting requires installation access to every allowlisted repository, even before activation.
 
 Before the first tags of side and join:
 
@@ -94,3 +94,25 @@ The operator subsequently confirmed saving the coordinator App repository select
 [Control run 39835348765](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39835348765) passed after the installation update. Source notifications and captures passed for join and side, proving their reader/notify credentials authenticate. D01 passed via capture 39835546673: five `unsatisfiable`/`blocked` nodes naming missing demo-side, no admitted source request, activation still eligible. Side activation capture is 39835779276. The overlapping moved-root capture is 39836077535, pinned to core commit 89852e2e8bc4b7f78abcb0fda75b58417b4596a0.
 
 The external auditor checks every actual join build at `request.publication`, independently reconstructing identity fingerprints from exact sources, revisions and owned file hashes. Both arm nodes must be bound to that baseline. It retains raw snapshots and records each admission. This is sandbox test tooling, not a new CI controller or state store. Existing capture nodes may predate a newer root publication; their build admission must still wait after the baseline changes.
+
+## Independent review, 22 October 2026
+
+Verdict: **changes required**, not whole-system acceptance. Confirmed blocker:
+OpenWrt 24.10 indexes contain two newline bytes and no package entries. Usign
+verification proves the signature, not completeness or installability. The
+publication deletion/reindex boundary is under investigation. Other findings
+cover OpenWrt metadata validation, the arm gate after stale direct-work
+conversion, concurrent graph validation and public-key authority. Offboarding
+semantics remain outside scope.
+
+The external live auditor currently checks join source admission against pinned
+feed identities and arm bindings. Five admissions have passed; that does not
+certify zero early captures, exact-once joins or publication-time correctness.
+Those gaps remain explicit. All four Debian packages were downloaded at one feed
+commit, checked against manifest SHA-256, extracted without installation and run:
+core 42; app uses core 42; side 43; join core 42, side 43.
+
+Actual negative captures rejected an unsupported distro (39837395135), a
+self-cycle (39837331084), and an unknown registered dependency (39837323639).
+The side v0.9.0 two-row capture published trixie and closed bookworm with a
+missing-core reason. These lower test tags do not replace the highest graph.

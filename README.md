@@ -6,6 +6,17 @@ It does not read or migrate the SNodeC feed, and it does not use SNodeC credenti
 
 The [live test matrix](docs/live-validation.md) tracks guarantees across all sandbox repositories, evidence and unresolved setup.
 
+## Current validation verdict
+
+**Changes required (22 October 2026).** Independent review found a blocking
+OpenWrt 24.10 feed issue: its signed `Packages` indexes are empty despite the
+published IPK files. Signature checks passed, but package discovery did not.
+Do not treat those rows as functional or this sandbox as go-live accepted.
+The Debian four-product diamond packages passed checksum and extracted-runtime
+checks. OpenWrt diamond scheduling remains under observation. Metadata validation,
+stale-work admission and key-authority findings are being checked separately.
+The [live matrix](docs/live-validation.md) distinguishes these results.
+
 ## What you need to do now
 
 The organization and six repositories exist, and the coordinator workflows,
@@ -38,9 +49,10 @@ capture was created because verification keys are capture-pinned. Both 24.10
 architectures now pass actual usign signing, verification and publication:
 [x86_64](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39829293477)
 and [arm64](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39829430282).
-Complete live cascade recovery remains under observation.
+These signature checks did not test index completeness; review later found the
+24.10 indexes empty. Complete functional recovery remains under observation.
 
-The observer PAT authenticates, reads the organization plan, and lists all four
+The observer PAT authenticates, reads the organization plan, and lists all six
 repositories. The approved policy accepts the complete paginated inventory when
 GitHub omits optional private-repository counters, relying on mandatory
 **All repositories** scope (section 3). Known counter mismatches and API/listing
@@ -102,7 +114,7 @@ No product matrix or dependency graph belongs in the coordinator master JSON:
 
 ```json
 {
-  "repositories": ["demo-core", "demo-app"],
+  "repositories": ["demo-core", "demo-app", "demo-side", "demo-join"],
   "feed": {"repository": "packages", "branch": "main"}
 }
 ```
@@ -155,14 +167,14 @@ the notify credentials.
 
 | App to create | Actions permission | Contents permission | Install on | Save its credentials in |
 | --- | --- | --- | --- | --- |
-| `VOC Experiments CI Coordinator` | Read and write | Read and write | All four named repositories | ci-coordinator only |
-| `VOC Experiments CI Capture Reader` | Read-only | Read-only | ci-coordinator only | demo-core and demo-app |
-| `VOC Experiments CI Notify` | Read and write | No access | ci-coordinator only | demo-core and demo-app |
+| `VOC Experiments CI Coordinator` | Read and write | Read and write | All six named repositories | ci-coordinator only |
+| `VOC Experiments CI Capture Reader` | Read-only | Read-only | ci-coordinator only | all four source repositories |
+| `VOC Experiments CI Notify` | Read and write | No access | ci-coordinator only | all four source repositories |
 
 **Installation selection and credential destination are different.** The two
 source Apps are installed only on `ci-coordinator`, because they let source
 workflows read captures from, and send notifications to, the coordinator. Their
-private keys are saved in `demo-core` and `demo-app`, where those workflows run.
+private keys are saved in all four source repositories, where those workflows run.
 
 **All entries below are repository-level Actions entries.** Do not create an
 Environment. A Client ID goes under **Variables → New repository variable**.
@@ -194,7 +206,7 @@ to **2.2 Capture Reader**. Keep the coordinator credentials where they are.
    For the CLI examples below, this is `bootstrap-private/coordinator.pem`.
 7. Click **Install App** in the App's sidebar, choose **VOC-Experiments**, choose
    **Only select repositories**, and select exactly `ci-coordinator`, `packages`,
-   `demo-core`, and `demo-app`. Click **Install** and finish the confirmation.
+   `demo-core`, `demo-app`, `demo-side`, and `demo-join`. Click **Install** and finish the confirmation.
 8. Open [ci-coordinator Actions Variables](https://github.com/VOC-Experiments/ci-coordinator/settings/variables/actions).
    Click **New repository variable**. Name: `PACKAGES_APP_CLIENT_ID`.
    Value: this **Coordinator App's Client ID**. Save it.
@@ -279,6 +291,8 @@ These are the exact repository entries after all three App procedures:
 | demo-core | `PACKAGE_NOTIFY_APP_CLIENT_ID` = Notify Client ID | `PACKAGE_NOTIFY_APP_PRIVATE_KEY` = Notify PEM |
 | demo-app | `PACKAGE_CAPTURE_APP_CLIENT_ID` = same Capture Reader Client ID | `PACKAGE_CAPTURE_APP_PRIVATE_KEY` = same Capture Reader PEM |
 | demo-app | `PACKAGE_NOTIFY_APP_CLIENT_ID` = same Notify Client ID | `PACKAGE_NOTIFY_APP_PRIVATE_KEY` = same Notify PEM |
+| demo-side | Both `PACKAGE_CAPTURE_APP_CLIENT_ID` and `PACKAGE_NOTIFY_APP_CLIENT_ID`, as above | Both matching `PACKAGE_*_APP_PRIVATE_KEY` secrets, as above |
+| demo-join | Both `PACKAGE_CAPTURE_APP_CLIENT_ID` and `PACKAGE_NOTIFY_APP_CLIENT_ID`, as above | Both matching `PACKAGE_*_APP_PRIVATE_KEY` secrets, as above |
 | packages | None | None |
 
 There must be **three Apps created and installed**, **one App variable and one
@@ -306,7 +320,7 @@ CLI equivalent, run locally with private keys in an ignored/protected directory:
 gh variable set PACKAGES_APP_CLIENT_ID --repo VOC-Experiments/ci-coordinator --body 'COORDINATOR_CLIENT_ID'
 gh secret set PACKAGES_APP_PRIVATE_KEY --repo VOC-Experiments/ci-coordinator < bootstrap-private/coordinator.pem
 
-for repo in demo-core demo-app; do
+for repo in demo-core demo-app demo-side demo-join; do
     gh variable set PACKAGE_CAPTURE_APP_CLIENT_ID --repo "VOC-Experiments/$repo" --body 'READER_CLIENT_ID'
     gh secret set PACKAGE_CAPTURE_APP_PRIVATE_KEY --repo "VOC-Experiments/$repo" < bootstrap-private/capture-reader.pem
     gh variable set PACKAGE_NOTIFY_APP_CLIENT_ID --repo "VOC-Experiments/$repo" --body 'NOTIFY_CLIENT_ID'
