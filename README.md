@@ -79,6 +79,12 @@ When deploying elsewhere, copy the same coordinator code/workflows. Change only:
 - deployment content under `site/`, `install/`, and the public `keys/`;
 - the new deployment's credentials.
 
+When preparing a coordinator deployment, ignore only root build/checkouts
+directories (`/build/` and `/checkouts/`). A bare `build/` ignore pattern also
+hides `ci/build/`, preventing its scripts from being committed. Before pushing,
+check that `git ls-files ci/build` lists all four platform scripts; verify the
+committed tree, not just files present in the working directory.
+
 No product matrix or dependency graph belongs in the coordinator master JSON:
 
 ```json
