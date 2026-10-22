@@ -561,3 +561,9 @@ code. Do not patch a sandbox-only coordinator implementation and call that
 reusability.
 
 More integration detail: [ci/README.md](ci/README.md).
+
+## Four-source live diamond setup record
+
+The operator has configured `demo-side` and `demo-join` with the existing capture-reader/notify repository secrets. Their public client-ID variables are set. The coordinator App installation was updated to include all six sandbox repositories: `ci-coordinator`, `packages`, `demo-core`, `demo-app`, `demo-side`, `demo-join`. Actual four-source token minting is checked before activation; the result is tracked in the [live matrix](docs/live-validation.md).
+
+For onboarding, save the coordinator App installation selection **before** adding the source to `ci/projects.json`. Merely setting source secrets does not grant the coordinator access. Capture-reader and notify remain installed on `ci-coordinator` only; the source receives their narrow reader/notify credentials, never the coordinator key. Each new source activates only through its own valid version tag.

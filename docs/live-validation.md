@@ -86,3 +86,5 @@ Operator supplied both source secret names (metadata verified), but [control run
 Remaining operator action: open [coordinator App installation 174142534](https://github.com/organizations/VOC-Experiments/settings/installations/174142534), select both `demo-side` and `demo-join` in addition to the existing four repositories, then save. This is the coordinator App, not the capture-reader or notify App. No permission types or PAT scope need changing.
 
 The completed older-tag lifecycle was sampled 14 times: notification/pending/publishing/published. All rendered Markdown blobs and highest display projection stayed identical; raw ledger and publication advanced. Source run/build and publication completed normally.
+
+The operator subsequently confirmed saving the coordinator App repository selection for both new sources. The allowlist is restored to four sources for a fresh token-minting verification, followed by missing-arm activation and diamond execution. The prior HTTP 422 record remains historical evidence.
