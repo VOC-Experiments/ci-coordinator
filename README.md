@@ -75,30 +75,75 @@ Cascades always select the highest semantic-version tag; there is no
 
 ## 2. Create the three GitHub Apps
 
-Open [New organization GitHub App](https://github.com/organizations/VOC-Experiments/settings/apps/new)
-for each role below. Use distinct names, for example `VOC Experiments CI
-coordinator`, `VOC Experiments CI capture-reader` and `VOC Experiments CI notify`.
-GitHub may require a different name if a name is already taken.
+Create **three separate Apps**, one for each role. Start with the coordinator.
+Open [New organization GitHub App](https://github.com/organizations/VOC-Experiments/settings/apps/new).
 
-For each App:
+### Fill in the “Create GitHub App” form
 
-1. Set its homepage to this repository URL.
-2. Disable webhooks. These workflows use authenticated dispatches, not webhooks.
-3. Set only the permissions listed below; Metadata read is implicit. No user
-   permissions, webhook subscriptions or OAuth user authorization are needed.
-4. Make it private to the organization.
-5. Create it, note its **Client ID**, and generate/download its private-key PEM.
-   The workflow uses the Client ID (`Iv...`), not the numeric App ID.
-6. Choose **Install App → VOC-Experiments → Only select repositories**, and select
-   exactly the repositories listed below.
-7. Retain the PEM privately. Never commit it, upload it as a build artifact,
-   publish it in an issue, or paste it into a command argument/chat.
+If you are on the form with the long permissions list, use this table. You do
+not need to fill every section.
 
-| App role | Repository permissions | Install on | Who holds its private key |
+| Field or section on GitHub | What to enter or select |
+| --- | --- |
+| **GitHub App name** | Coordinator: `VOC Experiments CI Coordinator`. Later repeat with `VOC Experiments CI Capture Reader` and `VOC Experiments CI Notify`. Names must be unique; a different name does not change the role. |
+| **Description** | Optional; for example `Isolated package CI coordinator for VOC-Experiments`. |
+| **Homepage URL** | `https://github.com/VOC-Experiments/ci-coordinator` |
+| **Redirect URL / callback URLs** | Leave empty. This CI does not use user OAuth authorization. |
+| **Allow mismatching** | Leave unchecked. |
+| **Expire user authorization tokens** | Leave the default; this CI does not use these tokens. |
+| **Request user authorization (OAuth) during installation** | Leave unchecked. |
+| **Enable Device Flow** | Leave unchecked. |
+| **Post installation → Setup URL** | Leave empty; leave redirect-on-update unchecked. |
+| **Webhook → Active** | **Uncheck it.** No webhook endpoint is required. |
+| **Webhook URL / Secret** | Leave empty after disabling Active. If GitHub still requires a webhook URL, check that **Active is unchecked**. |
+| **Permissions → Repository permissions** | Change only the Actions/Contents rows listed in the role table below. Leave **Metadata** at its mandatory read-only value. |
+| **Organization, Account and Enterprise permissions** | Leave unchanged, with no optional permissions granted. The observer token is configured separately in section 3. |
+| **Subscribe to events** | Leave **every event unchecked**, including Workflow dispatch. These are webhook subscriptions; they are not needed to dispatch an Actions workflow. |
+| **Where can this GitHub App be installed?** | Select **Only on this account** (`VOC-Experiments`), not Any account. |
+
+### Choose permissions for the App you are creating
+
+In **Repository permissions**, open the **Access** dropdown beside the named
+permission. Leave every other optional row at **No access**—including the
+separate **Workflows** permission.
+
+| App role | Actions dropdown | Contents dropdown | Later installation selection |
 | --- | --- | --- | --- |
-| Coordinator | Actions **read/write**, Contents **read/write** | ci-coordinator, packages, demo-core, demo-app | ci-coordinator only |
-| Capture reader | Actions **read**, Contents **read** | ci-coordinator **only** | demo-core and demo-app |
-| Notify | Actions **read/write** | ci-coordinator **only** | demo-core and demo-app |
+| **Coordinator** | **Read and write** | **Read and write** | ci-coordinator, packages, demo-core, demo-app |
+| **Capture Reader** | **Read-only** | **Read-only** | ci-coordinator **only** |
+| **Notify** | **Read and write** | **No access** | ci-coordinator **only** |
+
+**For the coordinator form:** if Actions and Contents already show **Read and
+write**, those permissions are correct. Fill in the homepage, uncheck Webhook
+Active, keep Only on this account selected, and click **Create GitHub App**.
+
+### After clicking “Create GitHub App”
+
+Creating the App registration does **not** finish installation or configure any
+workflow secrets. Complete these steps for each of the three Apps:
+
+1. On the App's **General** page, copy its **Client ID** (`Iv...`). Do not use the
+   numeric App ID or generate/use an OAuth Client secret instead.
+2. Scroll to **Private keys**, click **Generate a private key**, and retain the
+   downloaded `.pem` file privately. Keep track of which App each file belongs
+   to. The workflow needs the PEM file's full contents, not its filename.
+3. In the App settings sidebar, click **Install App**.
+4. Choose **VOC-Experiments**, then **Only select repositories**.
+5. Select exactly the repositories in the role table. For **Coordinator**, select
+   all four: `ci-coordinator`, `packages`, `demo-core`, and `demo-app`. For either
+   source App, select **only** `ci-coordinator`. Do not choose All repositories.
+6. Click **Install** and complete GitHub's confirmation.
+7. Repeat for the next App, then configure the variables/secrets below.
+
+| App role | Who receives its private key | Suggested private local filename for the CLI examples |
+| --- | --- | --- |
+| Coordinator | ci-coordinator only | `bootstrap-private/coordinator.pem` |
+| Capture Reader | demo-core and demo-app | `bootstrap-private/capture-reader.pem` |
+| Notify | demo-core and demo-app | `bootstrap-private/notify.pem` |
+
+Do not commit private PEM files or send them through chat. If using the optional
+local manifest setup page instead of the manual form, it saves the keys for you;
+you still need to **install** each App with the repository selection above.
 
 The coordinator key has the installation's full authority. Per-step token
 narrowing does not reduce what someone holding that private key can do. Never
@@ -109,8 +154,19 @@ signing authority.
 
 ### Set the App variables and secrets
 
-Use each repository's **Settings → Secrets and variables → Actions**. Client IDs
-are **Variables**; PEM private keys are **Secrets**.
+Open each repository's **Settings → Secrets and variables → Actions**:
+
+1. On the **Variables** tab, choose **New repository variable**. Enter the exact
+   variable name below and paste that App's **Client ID** as its value.
+2. On the **Secrets** tab, choose **New repository secret**. Enter the exact secret
+   name below and paste the matching private PEM file's **entire contents**,
+   including its BEGIN/END lines and line breaks.
+3. Save each entry. Do not put a PEM filename/path into a Secret, or a Client ID
+   into a Secret when the table requires a Variable.
+
+Use the **same capture-reader App** and **same notify App** for both source
+repositories. Do not create a fourth App or put the coordinator App key in a
+source repository.
 
 | Repository | Variable | Secret |
 | --- | --- | --- |
@@ -134,10 +190,17 @@ for repo in demo-core demo-app; do
 done
 ```
 
-Replace the three Client ID placeholders; do not use them literally. The
-agent-assisted manifest flow already saves the keys privately, so you can ask
-the agent to perform these repository-secret writes after installing the Apps.
-No private key needs to be sent through chat.
+Replace the three Client ID placeholders; do not use them literally. If you
+used the agent-assisted manifest page, its keys are already saved privately and
+the agent can configure these repository entries after App installation. If you
+used GitHub's manual form, use its downloaded PEM files with the UI or CLI steps
+above. No private key needs to be sent through chat.
+
+Before moving on, check: **three Apps created, three Apps installed, one Client
+ID Variable plus one App-key Secret in the coordinator, and two Client ID
+Variables plus two App-key Secrets in each source**. The observer and signing
+Secrets are separate steps below. App creation alone does not create any of
+these repository entries.
 
 ## 3. Create the read-only organization observer token
 
