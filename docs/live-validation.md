@@ -46,6 +46,8 @@ The current live graph is `demo-core → demo-app`, each with Debian trixie amd6
 
 The sources are [demo-core](https://github.com/VOC-Experiments/demo-core), [demo-app](https://github.com/VOC-Experiments/demo-app), [demo-side](https://github.com/VOC-Experiments/demo-side) and [demo-join](https://github.com/VOC-Experiments/demo-join). Graph: `core → {app, side} → join`. All four source JSON files request five rows. No extra source checkout was created; the new fixtures were prepared through disposable bare Git repositories under the evidence directory.
 
+The coordinator allowlist remains on the two configured sources until installation setup is complete: token minting requires installation access to every allowlisted repository, even before activation. Add the new allowlist entries only after step 2 below.
+
 Before the first tags of side and join:
 
 1. Open [the coordinator App installation](https://github.com/organizations/VOC-Experiments/settings/installations/174142534). Keep the existing repositories selected and add `demo-side` and `demo-join`. Do not change permission types. The capture-reader and notify Apps remain installed on `ci-coordinator` only.
