@@ -15,9 +15,9 @@ mkdir -p source
 tar -xzf "$bundle/$BUILD_PROJECT-"*.tar.gz --strip-components=1 -C source
 source "source/$(python3 -c 'import os; from ci.repository import PROJECTS; print(PROJECTS[os.environ["BUILD_PROJECT"]]["build"]["openwrt"])')"
 cp feeds.conf.default feeds.conf
-printf '\nsrc-link package-ci %s\n' "$sdk/recipes" >> feeds.conf
-./scripts/feeds update base packages package-ci
-./scripts/feeds install -a -p package-ci
+printf '\nsrc-link package_ci %s\n' "$sdk/recipes" >> feeds.conf
+./scripts/feeds update base packages package_ci
+./scripts/feeds install -a -p package_ci
 # Select publication packages; feature defaults come from their Config.in files.
 cat > .config <<EOF
 # CONFIG_ALL is not set
@@ -30,7 +30,7 @@ EOF
 make defconfig
 compile
 arch=$(sed -n 's/^CONFIG_TARGET_ARCH_PACKAGES="\(.*\)"/\1/p' .config)
-repository="bin/packages/$arch/package-ci"
+repository="bin/packages/$arch/package_ci"
 find "$feed/../dependencies" -maxdepth 1 -type f \( -name '*.ipk' -o -name '*.apk' \) -exec cp -t "$repository" {} +
 make package/index V=s
 python3 -m ci.repository check "$bundle"

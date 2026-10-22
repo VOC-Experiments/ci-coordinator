@@ -586,7 +586,7 @@ def download_sdk(row, destination):
 def stage(sdk, bundle, output):
     """Stage project packages and unsigned indexes; official feeds supply other dependencies."""
     info = json.loads((sdk / 'ci-sdk.json').read_text())
-    feed = sdk / 'bin/packages' / info['arch'] / 'package-ci'
+    feed = sdk / 'bin/packages' / info['arch'] / 'package_ci'
     extension = '.ipk' if info['series'] == '24.10' else '.apk'
     packages = sorted(feed.glob('*' + extension))
     destination = output / 'openwrt' / info['series'] / info['arch']
