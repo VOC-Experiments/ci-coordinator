@@ -31,9 +31,12 @@ Live testing corrected a duplicate Git Authorization header, an ignored platform
 script directory, an SDK feed-name restriction and relative SDK-export operands.
 The first 24.10 publications were rejected because the assisted setup script
 encoded its usign key pair inconsistently. The operator approved repair of that
-sandbox-only key pair and secret. The corrected public key is committed; a fresh
-capture is required because verification keys are capture-pinned. Successful
-24.10 publication and complete live cascade recovery remain pending.
+sandbox-only key pair and secret. The corrected public key was committed and a fresh
+capture was created because verification keys are capture-pinned. Both 24.10
+architectures now pass actual usign signing, verification and publication:
+[x86_64](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39829293477)
+and [arm64](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39829430282).
+Complete live cascade recovery remains under observation.
 
 The observer PAT authenticates, reads the organization plan, and lists all four
 repositories. The approved policy accepts the complete paginated inventory when
