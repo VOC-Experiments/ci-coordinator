@@ -1,0 +1,4 @@
+build/
+checkouts/
+__pycache__/
+ci/definitions.json
