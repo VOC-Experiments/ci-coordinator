@@ -71,9 +71,12 @@ def row_activity(row, info, state):
         for capture, generation in state.get('runs', {}).items():
             root = generation.get('context', {}).get('release_project')
             node = generation.get('nodes', {}).get(row['id'] + '/' + project, {})
-            if (project not in generation['revisions'] and node and root
+            source = str(node.get('source', {}).get('run'))
+            reserved = state.get('allocations', {}).get(source, {}).get(project)
+            if (source not in state.get('runs', {}) and project not in generation['revisions'] and node and root
                     and release_view(info, root).get('publications', {}).get(root, {}).get('capture') == capture
-                    and node.get('status') not in {'published', 'superseded'}):
+                    and node.get('status') not in {'published', 'superseded'}
+                    and (not current or reserved is None or int(reserved) > project_revision(own, project))):
                 held.append(node)
         capture_node = held[-1] if held and status in {None, 'not built'} else {}
         status = capture_node.get('status', status)
