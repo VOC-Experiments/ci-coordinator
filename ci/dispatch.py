@@ -17,7 +17,7 @@ from urllib.parse import urlencode
 from ci.repository import PROJECTS, REPOSITORIES, ROOT, CONFIG, supports, run, project_revision, configure, activate, dependencies, source_commit, binding, content, bind_projects, digest, missing_prerequisites
 from ci.repository import (ownership, COORDINATOR, OWNER, COORDINATOR_NAME, FEED, FEED_BRANCH, TAG, version,
                            source_tag, release_view, generation_tag, dependent_source, validate_projects, affected, prepare,
-                           work_index, cascade_blockers, requested_projects)
+                           work_index, cascade_blockers, requested_projects, unchanged)
 from ci.publish.publication import read, write, published, TERMINAL
 
 SHA = r'[0-9a-f]{40}'
@@ -237,7 +237,6 @@ def capacity():
 def receive(request, bundle):
     if request.get('project') not in REPOSITORIES or request.get('status', 'publishing') not in {'running', 'publishing', 'failed', 'cancelled'}:
         raise ValueError('Unregistered callback repository or status')
-    from ci.repository import unchanged
     unchanged(bundle)
     if read(bundle / 'context.json')['run_id'] != request['capture'] or request['project'] not in read(bundle / 'revisions.json'):
         raise ValueError('Callback capture or selected project mismatch')
@@ -441,6 +440,24 @@ def coverage(state, index, reservations, info, target, project, holder):
     return pending, settled
 
 
+def capture_bundle(capture, bundles):
+    if capture not in bundles:
+        directory = Path(os.environ['RUNNER_TEMP']) / ('package-capture-' + capture)
+        if not (directory / 'context.json').exists():
+            artifacts = listing(f'repos/{COORDINATOR}/actions/runs/{capture}/artifacts', 'artifacts')
+            if not any(a['name'] == 'source-pair' and not a['expired'] for a in artifacts):
+                raise ApiError(410, 'Capture unavailable; a new explicit release is required')
+            with tempfile.TemporaryDirectory(dir=directory.parent) as temporary:
+                run('gh', 'run', 'download', capture, '--repo', COORDINATOR, '-n', 'source-pair', '-D', temporary)
+                os.rename(temporary, directory)
+        try:
+            unchanged(directory)
+        except RuntimeError as error:
+            raise ApiError(410, 'Capture integrity failure; a new explicit release is required: ' + str(error)) from error
+        bundles[capture] = directory
+    return bundles[capture]
+
+
 def tick(root, bundles):
     state = transaction(root, {})
     original = copy.deepcopy(state)
@@ -502,22 +519,7 @@ def tick(root, bundles):
                                 node | dict(status='superseded', category='excluded',
                                             reason='Prerequisite replaced; pinned rebuild disabled by rebuild_overlap'))
                     if node['status'] not in TERMINAL and time.time() >= node.get('observation', {}).get('retry_at', 0):
-                        if capture not in bundles:
-                            directory = Path(os.environ['RUNNER_TEMP']) / ('package-capture-' + capture)
-                            if not (directory / 'context.json').exists():
-                                artifacts = listing(f'repos/{COORDINATOR}/actions/runs/{capture}/artifacts', 'artifacts')
-                                if not any(a['name'] == 'source-pair' and not a['expired'] for a in artifacts):
-                                    raise ApiError(410, 'Capture unavailable; a new explicit release is required')
-                                with tempfile.TemporaryDirectory(dir=directory.parent) as temporary:
-                                    run('gh', 'run', 'download', capture, '--repo', COORDINATOR, '-n', 'source-pair', '-D', temporary)
-                                    os.rename(temporary, directory)
-                            from ci.repository import unchanged
-                            try:
-                                unchanged(directory)
-                            except RuntimeError as error:
-                                raise ApiError(410, 'Capture integrity failure; a new explicit release is required: ' + str(error)) from error
-                            bundles[capture] = directory
-                        profile = read(bundles[capture] / 'profiles.json')[row['id']]
+                        profile = read(capture_bundle(capture, bundles) / 'profiles.json')[row['id']]
                         if (node.get('artifact') and not node.get('publisher_intent')
                                 and api(f'repos/{OWNER}/{project}/actions/artifacts/{node["artifact"]["id"]}')['expired']):
                             raise ApiError(410, f'repos/{OWNER}/{project}/actions/artifacts/{node["artifact"]["id"]}: artifact expired; rebuilding source')
@@ -749,7 +751,6 @@ def main():
     elif command == 'authorize':
         request = json.loads(os.environ['PACKAGE_REQUEST'])
         capture_run(request['capture'])
-        from ci.repository import unchanged
         unchanged(Path(args[0]))
         activate(Path(args[0]), request['target'])
         row = next(r for r in read(Path(args[0]) / 'targets.json') if r['id'] == request['target'])
@@ -775,9 +776,7 @@ def main():
         if os.environ.get('PACKAGE_REPORT'):
             try:
                 request = json.loads(os.environ['PACKAGE_REPORT'])
-                directory = Path(os.environ['RUNNER_TEMP']) / 'callback'
-                run('gh', 'run', 'download', identity(request['capture']), '--repo', COORDINATOR, '-n', 'source-pair', '-D', str(directory))
-                apply_report(root, request, directory)
+                apply_report(root, request, capture_bundle(identity(request['capture']), bundles))
             except Exception as error:
                 rejected = error
                 print('Callback rejected: ' + str(error), file=sys.stderr)

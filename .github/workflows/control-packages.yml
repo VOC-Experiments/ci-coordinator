@@ -12,7 +12,7 @@ on:
     workflows: [Orchestrate package release, Sign and publish distribution packages]
     types: [completed]
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '3,13,23,33,43,53 * * * *'
 permissions:
   contents: read
 concurrency:

@@ -540,6 +540,7 @@ from a two-product graph or claim mocked capacity timing as a live measurement.
 | App cannot access repository | Check installation selection and permissions, not only per-step token narrowing |
 | Capacity unknown | Verify observer resource owner, all-repository coverage, Plan/Actions read permissions and expiry; retain ledger and inspect reason/backoff |
 | Missing prerequisite | Publish matching core row; the failed direct node stays closed, while a later genuine cascade can select the highest app tag |
+| Transient deferral and no active runs | Wait for retry_at and the next delivered scheduled control run, or use Coordinate package builds with empty inputs to wake without resetting budgets; GitHub can delay/drop schedules |
 | Deterministic build/publication failure | Repair cause, then authorized operator retry or a new valid source event; no endless automatic retries |
 | Expired build artifact | Operator retry rebuilds after discarding expired artifact |
 | Expired immutable capture | New valid source release notification is required; never silently recapture different bytes |
@@ -604,3 +605,9 @@ Evidence is retained on the development machine under `/tmp/codex/build/snodec/p
 Approved S2 testing passed in official OpenWrt 24.10.8 and 25.12.5 x86_64 rootfs containers: strict signed-feed update, exact installation and execution of all four demo packages. There were 2 client cases,8 package installations/runtime checks and12 installed executable/library checksum comparisons. Native APK verification and package metadata checks also covered both architecture indexes,11 entries each.
 
 See [the exact versions, runtime outputs and limits](docs/live-validation.md#openwrt-client-installation-proof). No host software or CI code changed. No aarch64 emulation or runtime verification was performed; private/fault/exhaustion cases retain their matrix dispositions. This is sandbox functional evidence, not a SNodeC production rollout.
+
+## Revision sharing and GitHub-contained recovery
+
+Global status headings show the highest source version. Each target retains its actual package revision. Cascade captures with equal selected tag/SHA/tooling and prerequisite release identities can share a revision; row history or changed inputs can still produce different numbers. Direct captures stay fresh. Sharing is a capture-time provenance fact, not equality of package bytes or later stale-rebuild inputs. An unsaved rerun with changed or unknown provenance fails closed; use the existing operator node retry for a fresh capture.
+
+The controller shares one verified source-pair download between callback handling and reconciliation. A transient read failure defers through the existing ledger backoff; it does not spend a publication attempt. GitHub schedule runs at UTC minutes 3,13,23,33,43,53 are best effort. Once no work is in flight, recovery requires a delivered schedule, another normal event, or an authorized empty-input controller wake. This CI uses GitHub only; there is no external scheduler or timing guarantee. The cron offset is a mitigation with no measured improvement claim.

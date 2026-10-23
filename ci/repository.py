@@ -458,8 +458,20 @@ def archive_source(repo, config, source_tag, archives):
     return release_version, {f'refs/tags/{source_tag}': commit}, archive
 
 
-def prepare(published_root, bundle):
+def recipe_commit():
+    return run('git', '-C', str(ROOT), 'rev-parse', 'HEAD')
+
+
+def capture_inputs(root, row, project, tag, commit, recipe):
     from ci.publish.publication import published
+    info, directory = published(root, row)
+    required = dependencies(project, ROW_PROJECTS[row['id']])
+    sources = {p: info['sources'][p] for p in required if p in info.get('sources', {})}
+    inputs = dict(tag=tag, commit=commit, recipe=recipe, dependencies={p: release_identity(info, p) for p in required})
+    return info, directory, sources, hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
+
+
+def prepare(published_root, bundle):
     archives = bundle / 'archives'
     archives.mkdir(parents=True)
     changed = os.environ.get('RELEASE_PROJECT', '')
@@ -473,7 +485,7 @@ def prepare(published_root, bundle):
         raise RuntimeError('Reserved revisions do not match the release project')
     context = dict(contract=3, projects=PROJECTS, tag=tag, requested_at=os.environ.get('RELEASE_REQUESTED_AT', ''),
                    captured_at=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-                   recipe_commit=run('git', '-C', str(ROOT), 'rev-parse', 'HEAD'),
+                   recipe_commit=recipe_commit(),
                    destination=FEED, packages_commit=run('git', '-C', str(published_root), 'rev-parse', 'HEAD'),
                    release_project=changed, run_id=os.environ.get('GITHUB_RUN_ID', 'local'),
                    run_url=f'https://github.com/{COORDINATOR}/actions/runs/{os.environ.get("GITHUB_RUN_ID", "local")}')
@@ -485,9 +497,9 @@ def prepare(published_root, bundle):
     if not target_rows:
         raise ValueError('Highest version does not support requested cascade target')
     for row in target_rows:
-        baseline, directory = published(published_root, row)
+        baseline, directory, profile_sources, _ = capture_inputs(
+            published_root, row, changed, tag, PROJECTS[changed]['_commit'], context['recipe_commit'])
         projects = dict(ROW_PROJECTS[row['id']])
-        profile_sources = {p: baseline['sources'][p] for p in dependencies(changed, projects) if p in baseline.get('sources', {})}
         profiles[row['id']] = dict(context={k: v for k, v in context.items() if k != 'projects'} |
             dict(source_tags={changed: tag}, versions={changed: release_version}), sources=profile_sources | {changed: refs},
             archives={changed: archive}, baseline=baseline, directory=directory, projects=projects, errors={})
@@ -737,11 +749,16 @@ def project_revision(info, project):
     return result
 
 
+def release_identity(info, project):
+    info = release_view(info, project)
+    return dict(source=info.get('sources', {}).get(project), revision=project_revision(info, project))
+
+
 def dependency_identity(info, project):
     info = release_view(info, project)
     projects = ownership(info)
-    return dict(source=info.get('sources', {}).get(project), revision=project_revision(info, project),
-                files={name: checksum for name, checksum in info.get('files', {}).items() if project_file(name, project, projects)})
+    return release_identity(info, project) | dict(
+        files={name: checksum for name, checksum in info.get('files', {}).items() if project_file(name, project, projects)})
 
 
 def binding(info, required):

@@ -13,7 +13,7 @@ import sys
 
 from ci.repository import ROOT, run, select, project_file, digest, PROJECTS, REPOSITORIES, supports, package_owner, project_revision, package_version, affected, dependencies, rows, activate, ROW_PROJECTS, dependency_identity, source_commit, missing_prerequisites, binding
 from ci.repository import ownership, COORDINATOR, OWNER, FEED, FEED_BRANCH, source_tag, version, release_view, generation_tag, work_index, cascade_blockers
-from ci.repository import requested_projects, package_metadata, validate_package, validate_projects
+from ci.repository import requested_projects, package_metadata, validate_package, validate_projects, capture_inputs, recipe_commit
 
 
 def targets():
@@ -63,7 +63,7 @@ def render(root, state):
         config = config | dict(title=re.sub(r'[\r\n|`*_\[\]<>#!\\]', ' ', config['title']))
         item = state['latest'][project]
         tag, revision = item['tag'], item['revision']
-        release = f'{tag[1:]} · r{revision}'
+        release = tag[1:]
         projects.append((config, project, release, tag[1:], revision))
     headers = {path: '<a id="banner"></a>' for path in ['status/README.md',
                *(f"status/{config["package"]}.md" for config in recorded.values())]}
@@ -240,6 +240,22 @@ def update(state, row, generation, project, status, attempt, job_url=None):
     return None
 
 
+def shared_revision(state, info, project, target, tag, inputs, run_id):
+    work, captures = work_index(state)
+    links = [(key.rsplit('/', 1)[0], node['source'], node['status'])
+             for (_, key), node in captures.items() if key.rsplit('/', 1)[1] == project
+             and str(node.get('source', {}).get('run')) in state['allocations']
+             and str(node['source']['run']) != run_id]
+    numbers = [(row, source.get('inputs'), int(state['allocations'][str(source['run'])][project]),
+                status not in TERMINAL or str(source['run']) in state['runs']) for row, source, status in links]
+    claimed = max([project_revision(release_view(info, project, tag), project),
+                   work.get((target, project, tag), (0,))[0],
+                   int(state.get('requests', {}).get(project, {}).get(tag, {}).get('revision', 0)),
+                   *(number for row, _, number, _ in numbers if row == target)])
+    candidate = max((number for _, value, number, donor in numbers if donor and value == inputs), default=0)
+    return str(candidate) if candidate > claimed else None
+
+
 def reserve(root, project, run_id):
     """Applied and retried against Packages/main by the metadata writer."""
     if project not in REPOSITORIES:
@@ -256,19 +272,23 @@ def reserve(root, project, run_id):
         raise ValueError('A newer explicit request already exists')
     if requested_at and previous.get('run') == os.environ.get('RELEASE_RUN', '0') and previous.get('capture') != run_id:
         raise ValueError('This source notification already has a capture: ' + str(previous.get('capture')))
-    selected = (project,)
     parent = json.loads(os.environ.get('RELEASE_PARENT') or '{}')
     if parent:
         node = state['runs'][parent['capture']]['nodes'][parent['target'] + '/' + project]
         if node['request'] != parent or node.get('source', {}).get('run', int(run_id)) != int(run_id):
             raise ValueError('Cascade capture does not own the admitted intent')
-        node['source'] = dict(run=int(run_id), attempt=int(os.environ.get('GITHUB_RUN_ATTEMPT', '1')))
+        row = next(r for r in rows(PROJECTS[project]) if r['id'] == parent['target'])
+        info, _, _, inputs = capture_inputs(root, row, project, tag, os.environ['RELEASE_SHA'], recipe_commit())
+        if run_id in allocations and node.get('source', {}).get('inputs') != inputs:
+            raise RuntimeError('Capture inputs changed or unavailable after reservation; retry the node for a fresh capture')
+        node['source'] = dict(run=int(run_id), attempt=int(os.environ.get('GITHUB_RUN_ATTEMPT', '1')), inputs=inputs)
     if (run_id not in allocations or requested_at and run_id not in state.get('runs', {})
             and int(os.environ.get('GITHUB_RUN_ATTEMPT', '1')) > int(previous.get('capture_attempt', 1))):
-        for repo in selected:
-            state.setdefault('counters', {})[repo] = state.get('counters', {}).get(repo, 0) + 1
-        allocations[run_id] = {repo: str(state['counters'][repo]) for repo in selected}
-    if set(allocations[run_id]) != set(selected):
+        shared = shared_revision(state, info, project, row['id'], tag, inputs, run_id) if parent else None
+        if shared is None:
+            state.setdefault('counters', {})[project] = state.get('counters', {}).get(project, 0) + 1
+        allocations[run_id] = {project: shared or str(state['counters'][project])}
+    if set(allocations[run_id]) != {project}:
         raise RuntimeError('A retry cannot change its release project')
     if requested_at:
         requests.setdefault(project, {})[tag] = dict(

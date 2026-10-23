@@ -212,3 +212,20 @@ It does not certify that the dependent avoided a prerequisite rebuild. Source ho
 A failed negative publication can update the execution ledger and rendered failure status. Acceptance requires unchanged
 package manifests, indexes, signatures and package payloads, rather than an unchanged whole feed ref.
 All SNodeC GitHub repositories, production tags and feeds are outside this sandbox retest.
+
+## Revision-sharing and recovery validation (current stage)
+
+All new cases below are pending live evidence until their run/capture/artifact identities are recorded. SNodeC GitHub remains untouched. Coordinator tooling remains constant during each live wave.
+
+| ID | Scope | Expected | State |
+|---|---|---|---|
+| R01 | callback/control | One verified source-pair download per capture in one callback+tick pass | local regression passed; live pending |
+| R02 | core→app/side→join, five rows | Matching fresh cascade provenance shares row revisions, with zero early or duplicate joins | pending |
+| R03 | older core direct tag | Exact requested source publishes; highest display unchanged; no cascade | pending |
+| R04 | identical publisher replay | No signing/package/index/receipt mutation | pending |
+| R05 | older app direct, then framework move | Exact older direct; subsequent chain selects highest app tag; matching rows share where eligible | pending |
+| R06 | failed highest source and repaired moved tag | Failure remains visible; old failure/budgets retained; new valid event recovers and cascades | pending |
+| R07 | artifact/feed audit | Controls, namespace, row revisions, signatures/checksums and actual package payloads agree | pending |
+| R08 | delivered schedule and empty-input wake | Backoff respected; automatic schedule observed separately from operator recovery | pending |
+
+The ten-minute cron is staggered to UTC minutes 3,13,23,33,43,53. It is best effort. No external scheduler, self-trigger loop, extra retry authority or bound on GitHub wake delivery is claimed. Existing schedules show long gaps; comparing the offset requires a quiet observation window and is not certified by a few live samples.
