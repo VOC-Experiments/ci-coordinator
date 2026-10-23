@@ -188,8 +188,8 @@ def change(root, payload):
             node.pop(field, None)
         node.update(status='publishing' if node.get('artifact') else 'pending', waiting=False, builds=0, publications=0)
         if not node.get('artifact'):
-            node.pop('source', None)
-            node.pop('request', None)
+            for field in ('source', 'request', 'job', 'job_url'):
+                node.pop(field, None)
     write(root / 'status.json', state)
     return None
 

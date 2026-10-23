@@ -76,12 +76,14 @@ def row_activity(row, info, state):
             if (source not in state.get('runs', {}) and project not in generation['revisions'] and node and root
                     and release_view(info, root).get('publications', {}).get(root, {}).get('capture') == capture
                     and node.get('status') not in {'published', 'superseded'}
+                    and not (current and reserved is None and node.get('status') in TERMINAL
+                             and node.get('dependencies') is not None and node['dependencies'] == item.get('dependencies'))
                     and (not current or reserved is None or int(reserved) > project_revision(own, project))):
                 held.append(node)
         capture_node = held[-1] if held and status in {None, 'not built'} else {}
         status = capture_node.get('status', status)
         cause = item.get('cause', state.get('runs', {}).get(item.get('run_id'), {}).get('context', {}).get('cause', 'release'))
-        waiting = [p for p in graph.get(project, {}).get('depends_on', []) if activity[p]['status'] is not None]
+        waiting = [p for p in graph.get(project, {}).get('depends_on', []) if activity[p]['status'] not in {None, 'not built'}]
         failed = [p for p in waiting if activity[p]['status'] in {'failed', 'cancelled', 'skipped', 'unsatisfiable', 'blocked'}]
         if waiting and (status in {None, 'not built'} or status == 'pending' and (capture_node or cause == 'dependent')):
             status = 'blocked' if failed else 'waiting'
