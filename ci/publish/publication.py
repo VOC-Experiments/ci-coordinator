@@ -1,5 +1,7 @@
 """Monotonic build events and serialized feed publication for Packages/main."""
 from datetime import datetime, timezone
+from graphlib import TopologicalSorter
+from html import escape
 import copy
 import importlib
 import json
@@ -54,6 +56,37 @@ DISTRIBUTIONS = {
 }
 
 
+def row_activity(row, info, state):
+    """Explain recorded highest-version work through immediate prerequisite pages."""
+    graph, activity = state['projects'], {}
+    for project in TopologicalSorter({p: c['depends_on'] for p, c in graph.items()}).static_order():
+        item = state['targets'].get(row['id'] + '/' + project, {})
+        own = release_view(info, project, state['latest'].get(project, {}).get('tag'))
+        available = own.get('versions', {}).get(project)
+        current = available and str(project_revision(own, project)) == str(
+            item.get('revision', state['latest'].get(project, {}).get('revision')))
+        status = item.get('status') if not current else None
+        status = status if status in ORDER and status != 'published' else None if available else 'not built'
+        held = []
+        for capture, generation in state.get('runs', {}).items():
+            root = generation.get('context', {}).get('release_project')
+            node = generation.get('nodes', {}).get(row['id'] + '/' + project, {})
+            if (project not in generation['revisions'] and node and root
+                    and release_view(info, root).get('publications', {}).get(root, {}).get('capture') == capture
+                    and node.get('status') not in {'published', 'superseded'}):
+                held.append(node)
+        capture_node = held[-1] if held and status in {None, 'not built'} else {}
+        status = capture_node.get('status', status)
+        cause = item.get('cause', state.get('runs', {}).get(item.get('run_id'), {}).get('context', {}).get('cause', 'release'))
+        waiting = [p for p in graph.get(project, {}).get('depends_on', []) if activity[p]['status'] is not None]
+        failed = [p for p in waiting if activity[p]['status'] in {'failed', 'cancelled', 'skipped', 'unsatisfiable', 'blocked'}]
+        if waiting and (status in {None, 'not built'} or status == 'pending' and (capture_node or cause == 'dependent')):
+            status = 'blocked' if failed else 'waiting'
+        activity[project] = dict(status=status, prerequisites=failed if status == 'blocked' else waiting if status == 'waiting' else [],
+                                 capture=bool(capture_node), current=bool(current))
+    return activity
+
+
 def render(root, state):
     """Project recorded release and feed facts; never mutate feeds or event state."""
     state = projection(state)
@@ -68,8 +101,8 @@ def render(root, state):
     headers = {path: '<a id="banner"></a>' for path in ['status/README.md',
                *(f"status/{config["package"]}.md" for config in recorded.values())]}
     indicators = {
-        'current': '<circle cx="7" cy="7" r="6" fill="#1a7f37"/><path d="M4 7.2l2 2 4-4.2" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
-        'outdated': '<circle cx="7" cy="7" r="6" fill="#9a6700"/><path d="M7 3.2V7l2.3 1.5" fill="none" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>',
+        'waiting': '<circle cx="7" cy="7" r="6" fill="#9a6700"/><path d="M7 3.2V7l2.3 1.5" fill="none" '
+                   'stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>',
         'skipped': '<circle cx="7" cy="7" r="5.25" fill="none" stroke="#9a6700" stroke-width="1.5"/><path d="M4.5 7h5" fill="none" stroke="#9a6700" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
         'running': '<circle cx="7" cy="7" r="6" fill="#0969da"/><circle cx="7" cy="7" r="2" fill="white"/>',
         'publishing': '<circle cx="7" cy="7" r="6" fill="#8250df"/><path d="M7 4v6M4.5 6.5L7 4l2.5 2.5" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -80,17 +113,20 @@ def render(root, state):
         'cancelled': '<circle cx="7" cy="7" r="5.25" fill="none" stroke="#848d97" stroke-width="1.5"/><path d="M3.3 10.7L10.7 3.3" fill="none" stroke="#848d97" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
     }
     indicators['unsatisfiable'] = indicators['skipped']
+    indicators['blocked'] = indicators['failed']
     badges = root / 'status/badges'
     badges.mkdir(parents=True, exist_ok=True)
     for label, body in indicators.items():
         (badges / f'{label}.svg').write_text(f'<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" role="img" aria-label="{label.replace("-", " ")}"><title>{label.replace("-", " ")}</title>{body}</svg>\n')
-    for obsolete in [badges / 'published.svg', *(root / 'status').glob('*.svg'), *(root / 'status/menu').glob('*.svg')]:
+    for obsolete in [*(badges / (name + '.svg') for name in ['published', 'current', 'outdated']),
+                     *(root / 'status').glob('*.svg'), *(root / 'status/menu').glob('*.svg')]:
         obsolete.unlink(missing_ok=True)
     dot = lambda label: f'<img src="badges/{label}.svg" alt="{label.replace("-", " ")}" title="{label.replace("-", " ").capitalize()}" width="14" height="14" align="absmiddle">'
     stamp = lambda value: datetime.fromisoformat(value.replace('Z', '+00:00')).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M') if value else '—'
     target_rows = list({r['id']: r for c in recorded.values() for r in rows(c)}.values())
     releases = list(dict.fromkeys((row['distribution'], row['suite']) for row in target_rows))
     target_rows.sort(key=lambda row: (list(DISTRIBUTIONS).index(row['distribution']), releases.index((row['distribution'], row['suite'])), row['arch']))
+    activity = {row['id']: row_activity(row, published(root, row)[0], state) for row in target_rows}
     platforms = []
     template = (ROOT / 'ci/templates/package-status.md.tmpl').read_text()
     for config, project, release, version, revision in projects:
@@ -110,27 +146,43 @@ def render(root, state):
                       state.get('timeline', {}).get(key, {}).get('published', {}))
             selected_tag = version
             row_revision = item.get('revision', revision)
-            same_revision = available and str(project_revision(info, project)) == str(row_revision)
+            detail = activity[row['id']][project]
+            same_revision = detail['current']
             expected = package_version(row, selected_tag, row_revision) if selected_tag and row_revision is not None else None
-            current = ((dot('current' if same_revision and available == expected else 'outdated') + ' ') if expected else '') + f'`{available}`' if available else '—'
+            current = f'<code>{escape(available)}</code>' if available else '—'
             matching_publication = available and str(record.get('revision')) == str(project_revision(info, project))
             published_at = record.get('at') if matching_publication else None
             if not published_at and info.get('context', {}).get('build_project') == project:
                 published_at = info.get('published_at')
-            status = item.get('status')
-            attempt = expected and row_revision is not None and str(item.get('revision')) == str(row_revision) and status in ORDER and not same_revision
-            in_build = f'{dot(status.replace(" ", "-"))} `{expected}`' if attempt and status != 'published' else '—'
-            if in_build != '—':
+            status = detail['status']
+            labels = []
+            for dependency in detail['prerequisites']:
+                config_dependency = recorded.get(dependency)
+                label = escape(config_dependency['title'] if config_dependency else dependency)
+                if config_dependency:
+                    label = f'<a href="{escape(config_dependency["package"])}.md#banner">{label}</a>'
+                if status == 'blocked' and activity[row['id']][dependency]['status'] in TERMINAL:
+                    label += ' ' + activity[row['id']][dependency]['status']
+                labels.append(label)
+            label = ('Waiting for ' if status == 'waiting' else 'Blocked: ') + ', '.join(labels) if labels else (
+                'Building' if status == 'running' else status.capitalize() if status else '')
+            if detail['capture'] and not labels:
+                label += ' capture'
+            elif expected and status and not labels and status != 'not built':
+                label += f' <code>{escape(expected)}</code>'
+            in_build = f'{dot(status.replace(" ", "-"))} {label}' if status else '—'
+            if status and not detail['prerequisites'] and not detail['capture']:
                 log = item.get('job_url')
             else:
                 log = record.get('job_url') if matching_publication else None
-                if not log and available and same_revision and status == 'published':
+                if not log and available and same_revision and item.get('status') == 'published':
                     log = item.get('job_url')
             packages = f"{row['distribution']}/pool/{row['suite']}" if row['distribution'] in {'debian', 'ubuntu', 'raspberrypios'} else f'{feed}/Packages' if row['distribution'] in {'rocky', 'fedora'} else feed
             log = log if log and re.fullmatch(rf'https://github.com/{re.escape(OWNER)}/[A-Za-z0-9._-]+/actions/runs/[0-9]+/job/[0-9]+', log) else None
-            links = ([f'[Build log]({log})'] if log else []) + [f'[Packages](../{packages}/)']
+            links = ([f'<a href="{escape(log)}">Build log</a>'] if log else []) + [f'<a href="../{escape(packages)}/">Packages</a>']
             sections.setdefault(row['distribution'], {}).setdefault(row['suite'], []).append(
-                f"| `{row['arch']}` | {current} | {stamp(published_at)} | {in_build} | {' · '.join(links)} |")
+                '<tr>' + ''.join(f'<td align="{"center" if cell == "—" else "left"}">{cell}</td>' for cell in
+                    [f'<code>{escape(row["arch"])}</code>', current, stamp(published_at), in_build, ' · '.join(links)]) + '</tr>')
         body, menu = [], ['<a id="distributions"></a>', '| Distribution | Jump to release |\n| --- | --- |']
         for distribution, releases in sections.items():
             title, guide = DISTRIBUTIONS[distribution]
@@ -139,7 +191,9 @@ def render(root, state):
             for suite, lines in releases.items():
                 body += [f'<a id="{distribution}-{suite.replace(".", "")}"></a>\n\n### {title} {suite}',
                          '[↑ Distributions](#distributions)',
-                         '| Architecture | Available | Published (UTC) | In build | Links |\n| --- | --- | --- | --- | --- |\n' + '\n'.join(lines)]
+                         '<table>\n<thead><tr>' + ''.join(f'<th>{label}</th>' for label in
+                             ['Architecture', 'Available', 'Published (UTC)', 'In build', 'Links']) +
+                         '</tr></thead>\n<tbody>\n' + '\n'.join(lines) + '\n</tbody>\n</table>']
         legend = ' · '.join(f'{dot(label)}&nbsp;{label.replace("-", " ").capitalize().replace(" ", "&nbsp;")}' for label in indicators)
         page = template.replace('<!-- header -->', headers[f"status/{config['package']}.md"]).replace('<!-- title -->', config['title']).replace('<!-- release -->', release).replace('<!-- navigation -->', navigation).replace('<!-- menu -->', '\n\n'.join(menu[:1]) + '\n\n' + '\n'.join(menu[1:])).replace('<!-- body -->', '\n\n'.join(body)).replace('<!-- legend -->', legend)
         (root / f"status/{config['package']}.md").write_text(page)
