@@ -7,10 +7,10 @@ This is a test plan and evidence register, not an all-green claim. Status is exp
 | L01 | coordinator/packages | Empty controller safe | passed, retained | 39800707102; empty-feed local CAS guard |
 | L02 | app/coordinator/packages | Own activation/missing prerequisite | passed, retained | 39801935511; durable request and row failure |
 | L03 | core/coordinator | Moved tag exact SHA/fresh revision | passed | 39828642106 and moved Core39878350568; immutable old bundles |
-| L04 | four sources/packages | Per-row cascade and useful feed | partial | All five rows converge; raw index proof passes; client install needs S2 |
+| L04 | four sources/packages | Per-row cascade and useful feed | passed scheduling and x86_64 clients | All five rows converge; signed feed/index evidence and both x86_64 client installations/runtime pass. No aarch64 runtime claim. |
 | L05 | four sources/packages | Debian signatures/checksum/runtime | passed in sampled Debian feed | Downloaded/extracted four binaries:42,42,43,42+43; no host installation |
-| L06 | four sources/packages | 24.10 signing/membership/SDK reuse | partial | Both real indexes/raw Ed25519 signatures/all IPK bytes+controls and16 SDK exports checked; client install needs S2 |
-| L07 | four sources/packages | 25.12 APK signing/reuse | partial | Actual pinned APK signing/verification and complete-index guard exercised; independent client add/install needs S2 |
+| L06 | four sources/packages | 24.10 signing/membership/SDK reuse | passed x86_64 client; aarch64 runtime untested | Official 24.10.8 x86_64: opkg signature check,4 exact package installs and runtime pass;6 installed payload hashes match IPKs. Both architecture indexes/IPK controls and SDK reuse checked; no aarch64 execution. |
+| L07 | four sources/packages | 25.12 APK signing/reuse | passed x86_64 client; aarch64 runtime untested | Official 25.12.5 x86_64: signed-index APK update/add,4 exact package installs/runtime pass;6 installed payload hashes match APK metadata. Both APK index signatures and 11 identities per architecture verified; no aarch64 execution. |
 | L08 | coordinator | Malformed/unknown intake | passed, retained | Seven exact rejection errors/no reservation,39830357019–39830378760 |
 | L09 | coordinator | Wrong source event/run | passed, retained | 39830375493/39830378760 reject before reserve |
 | L10 | app/coordinator | Strict tag/VERSION | passed, retained | 39831820312 mismatch;39831372661 rejects leading zero |
@@ -29,7 +29,7 @@ This is a test plan and evidence register, not an all-green claim. Status is exp
 | L23 | organization/coordinator | Org capacity/occupied/backlog | partial | Observer39871717858 counts2unrelated jobs;35endpoint invocations/12.273478893s. Full saturation/private/pool arithmetic not certified |
 | L24 | coordinator | Unknown capacity fails closed/recovery | passed, retained | Earlier observer auth/private-counter failure and fixed recovery |
 | L25 | coordinator | Finite queue wake retention | partial | Pending queue observed; overflow/exhaustion not forced |
-| L26 | packages | Siblings/versions/SDK/by-hash | passed for sampled membership/retention; client limit | Both24.10 rows include all4 products+retained versions; SDK own-only; existing Debian by-hash and four-format offline guards. APK client independent proof remains S2 |
+| L26 | packages | Siblings/versions/SDK/by-hash | passed sampled retention/indexes and x86_64 clients | Both 24.10 rows retain all 4 products/versions; both 25.12 signed indexes match all 11 package controls per architecture. SDK own-only and Debian by-hash evidence retained. Actual opkg/APK clients select highest versions; aarch64 runtime untested. |
 | L27 | packages | Highest failure visible | passed in inspected failure | 040ae335 shows highestSide1.2-r10 failure/real job link, no older fallback; render transaction lag qualified |
 | L28 | coordinator | Expiry/uncertain run | blocked for live deletion/expiry injection | 404/403 preservation and new-event recovery proven offline; no live deletion without S3 |
 | L29 | coordinator | Ambiguity/transient/lost callback | partial | Rerun/recovery exercised; actual dispatch transport fault injection needs S3 |
@@ -130,7 +130,7 @@ The fixed coordinator is byte-identical to the locally verified canonical produc
 | L37 | Feed public keys versus deployed default-branch authority | Offline key-regression checks pass; verify after each new publication |
 | L38 | coordinator/child sources | Registered child during aggregate lag | passed offline; live aggregate lag not observed | Public tick regression passes. Three parent-running ledger samples were observation lag: parent API updated_at precedes child creation by22–29seconds; no positive aggregate-lag claim |
 
-D02–D08 require deliberate sequencing and an independent audit of held capture intents, child builds, raw arm facts, artifact contents and exact publisher snapshots. Prior convergence is not exactly-once certification. The auditor includes duplicate and stale-arm negative self-tests. Local mocks do not certify real signatures or package installation. Official disposable OpenWrt client rootfs tests need the work order's separate S2 approval; run/artifact deletion, forced budget exhaustion and new permissions need S3.
+D02–D08 require deliberate sequencing and an independent audit of held capture intents, child builds, raw arm facts, artifact contents and exact publisher snapshots. Prior convergence is not exactly-once certification. The auditor includes duplicate and stale-arm negative self-tests. Local mocks do not certify real signatures or package installation. At that intermediate stage S2 approval was pending; the approved client results below supersede that gap. Run/artifact deletion, forced budget exhaustion and new permissions still need S3.
 
 Read-only observer accounting reports actual API commands/rate limits separately from the coordinator's static cost formula. N5 retains an unobservable request and its commitments; a new verified source push for the same tag replaces the request through CAS. A 404 alone never proves absence. N10 probes baseline commits by exact SHA and measured age, without changing the accepted parentless writer.
 
@@ -155,7 +155,7 @@ A separate deliberately sequenced Core-move/direct-App/failed-Side/operator-reru
 ## Current verified correction
 
 **Changes complete for the tested scope (23 October 2026); no production go-live claim.**
-The empty OpenWrt 24.10 index defect is corrected: indexes now derive from verified own and retained package controls. Both architecture indexes, raw signatures, every indexed IPK checksum/size and control identity were independently checked. The trusted publisher rejects namespace/version/architecture spoofs across Debian/RPM/opkg/APK. Real OpenWrt client installation still requires the separate S2 approval for the rootfs/tool stage; signing and metadata checks alone do not prove it.
+The empty OpenWrt 24.10 index defect is corrected: indexes now derive from verified own and retained package controls. Both architecture indexes, raw signatures, every indexed IPK checksum/size and control identity were independently checked. The trusted publisher rejects namespace/version/architecture spoofs across Debian/RPM/opkg/APK. Approved S2 tests now prove signed-feed installation and runtime of all four products in official OpenWrt 24.10.8 and 25.12.5 x86_64 containers. The aarch64 rows have metadata/index evidence; native aarch64 installation and execution remain untested.
 
 The deliberately held/failed-arm diamond passed: direct App published outside Core lineage while Side was stale, with zero early Join captures/builds. One operator Side rerun was followed by exactly one Join capture 39885172814, source 39885255474 and publication. The final raw admission audit covers89 generations / 114 observations with zero errors;37 Join artifact/publication records were inspected with zero errors. Auditors use raw sources, revisions and owned checksums, including duplicate/stale negative self-tests. Counts are bounded evidence, not a universal timing claim.
 
@@ -165,4 +165,32 @@ Healthy current source hooks are restored after the deliberate fixtures. Side v1
 
 The shared reader/validator rejects malformed control paragraphs and control characters in own/retained package identities. Public-key overlay, fresh prospective CAS graph validation, terminal retention, observation uncertainty and source credential boundaries are preserved. The earlier six live namespace negatives ran on 1491260; the last one-line filename guard was additionally reproduced/fixed offline and deployed on e86bbe8. No malformed live index was created.
 
-S2 image/client work and S3 destructive/exhaustion/permission experiments remain unapproved. Do not interpret partial/blocked rows as passed. The D08 operator rerun returned an identical-receipt no-op; publication arm-currency rejection is mandatory offline proof, not a claimed live gate reach. The source fixtures and capacity setting are restored; no SNodeC external change occurred.
+S2 image/client work is approved and completed for the stated x86_64 scope. S3 destructive/exhaustion/permission experiments remain unapproved. Do not interpret partial/blocked rows as passed. The D08 operator rerun returned an identical-receipt no-op; publication arm-currency rejection is mandatory offline proof, not a claimed live gate reach. The source fixtures and capacity setting are restored; no SNodeC external change occurred.
+
+## OpenWrt client installation proof
+
+The user approved S2 on 23 October 2026. Both official SHA-verified x86_64 root filesystems installed all four products directly from the signed feed frozen at `9bc93ab2a8c88c43c581cbb8f75bb969b5f7e94d`:
+
+| Product | OpenWrt 24.10.8 / opkg | OpenWrt 25.12.5 / APK |
+| --- | --- | --- |
+| demo-core | 1.1.0-r10 | 1.1.0-r10 |
+| demo-app | 1.2.0-r26 | 1.2.0-r26 |
+| demo-side | 1.3.0-r19 | 1.3.0-r19 |
+| demo-join | 1.1.0-r29 | 1.1.0-r30 |
+
+Each client ran all four installed programs and produced exactly:
+
+```text
+demo-core 42
+demo-app uses core 42
+demo-side 43
+demo-join core 42, side 43
+```
+
+`opkg` used `option check_signature` and reported `Signature check passed.` APK used only the sandbox public key directory and frozen repository; native `apk verify` also verified both architecture indexes. No untrusted/signature or TLS bypass was used. No upstream dependency feed was needed: the official rootfs already contained base dependencies.
+
+The certificate covers 2 client cases,8 package installs,8 runtime outputs and12 installed executable/library SHA256 comparisons. Both APK indexes contain exactly 11 verified identities each: internal owner/version/architecture, archive SHA256, file size and dependencies match the frozen manifest/native package metadata. Installed x86_64 file hashes match their published IPK data or APK file metadata. The APK repository index is signed; standalone unsigned APK extraction correctly rejects without a bypass. This is not a failure of signed-repository installation.
+
+Architecture limits: no aarch64 emulation was installed. The aarch64 APK index/control/archive checks pass; native installation/execution and APK ELF extraction are not claimed. Earlier IPK architecture/extraction evidence remains separate. This closes the x86_64 client gap, not every S3/private/fault/queue hypothesis in the matrix.
+
+Tests used existing rootless Podman 5.8.6 with dedicated storage/runroot/tmp under `/tmp/codex/build/snodec/package-ci/review-fixes-20261022T202117Z/s2-clients-20261023T062911Z/`. Containers were disposable, unprivileged and removed on exit; images/logs/storage remain for review. No host packages, signing keys, permissions, source tags, CI code or SNodeC external state changed. The initial boot-directory/BusyBox/heredoc harness failures and exact package-proof qualifications are retained beside `certificate.json`; they are not CI defects. The pre-existing 288-test suite was not rerun for container/documentation-only work.

@@ -9,7 +9,7 @@ The [live test matrix](docs/live-validation.md) tracks guarantees across all san
 ## Current validation verdict
 
 **Changes complete for the tested scope (23 October 2026); no production go-live claim.**
-The empty OpenWrt 24.10 index defect is corrected: indexes now derive from verified own and retained package controls. Both architecture indexes, raw signatures, every indexed IPK checksum/size and control identity were independently checked. The trusted publisher rejects namespace/version/architecture spoofs across Debian/RPM/opkg/APK. Real OpenWrt client installation still requires the separate S2 approval for the rootfs/tool stage; signing and metadata checks alone do not prove it.
+The empty OpenWrt 24.10 index defect is corrected: indexes now derive from verified own and retained package controls. Both architecture indexes, raw signatures, every indexed IPK checksum/size and control identity were independently checked. The trusted publisher rejects namespace/version/architecture spoofs across Debian/RPM/opkg/APK. Approved S2 tests now prove signed-feed installation and runtime of all four products in official OpenWrt 24.10.8 and 25.12.5 x86_64 containers. The aarch64 rows have metadata/index evidence; native aarch64 installation and execution remain untested.
 
 The deliberately held/failed-arm diamond passed: direct App published outside Core lineage while Side was stale, with zero early Join captures/builds. One operator Side rerun was followed by exactly one Join capture 39885172814, source 39885255474 and publication. The final raw admission audit covers89 generations / 114 observations with zero errors;37 Join artifact/publication records were inspected with zero errors. Auditors use raw sources, revisions and owned checksums, including duplicate/stale negative self-tests. Counts are bounded evidence, not a universal timing claim.
 
@@ -26,7 +26,7 @@ checked manually by the operator; runtime authentication and signing are tested
 separately below.
 
 **Prepared sandbox: configuration is complete; do not recreate its Apps or keys.**
-Tag activation, missing-prerequisite closure, moved-tag capture, highest-only status, direct older releases, source reruns, sibling/version/SDK retention, callback verification and the deliberately sequenced diamond have bounded live evidence. Rootfs/client installation and unapproved fault/permission probes remain incomplete. The current verdict and [live matrix](docs/live-validation.md) are authoritative; earlier evidence counts are historical.
+Tag activation, missing-prerequisite closure, moved-tag capture, highest-only status, direct older releases, source reruns, sibling/version/SDK retention, callback verification and the deliberately sequenced diamond have bounded live evidence. The x86_64 rootfs/client checks passed. Unapproved fault/private/permission probes remain incomplete. The current verdict and [live matrix](docs/live-validation.md) are authoritative; earlier evidence counts are historical.
 
 The observer PAT authenticates, reads the organization plan, and lists all six
 repositories. The approved policy accepts the complete paginated inventory when
@@ -577,7 +577,7 @@ The six-repository installation is now verified: [control run 39835348765](https
 
 ## Review correction model
 
-The coordinator validates internal package namespace, version/revision and architecture before signing every own or retained package. OpenWrt 24.10 indexes are regenerated from verified package controls, including retained siblings; 25.12 indexes must cover every verified identity. New publications and independent index/package checks verify complete indexes; actual client installation remains a distinct S2 gap.
+The coordinator validates internal package namespace, version/revision and architecture before signing every own or retained package. OpenWrt 24.10 indexes are regenerated from verified package controls, including retained siblings; 25.12 indexes must cover every verified identity. New publications and independent index/package checks verify complete indexes; actual x86_64 client installation and runtime are now verified by the approved S2 tests.
 
 The CAS reservation validates the prospective highest requested graph. Stale direct artifacts pass the same dependent arm gate after conversion; terminal failures keep their budgets. A registered child is no longer held by aggregate run lag. Invalid callbacks still allow reconciliation before the run fails. An unobservable capture stays reserved; recovery needs a new valid same-tag push event, not a rerun of the same source run. Failed build/publish jobs remain terminal until an operator acts or a separate new event creates new work.
 
@@ -585,7 +585,7 @@ Do not remove a source with request records: offboarding is out of scope. Source
 
 All four source hooks were updated to export only their own SDK staging-record files and own provides record, retaining legitimate prerequisite export/import. See the [live matrix](docs/live-validation.md) for current proof and remaining gaps.
 
-The latest reader correction and live evidence are recorded in [the validation matrix](docs/live-validation.md#current-verified-correction). Official OpenWrt client-rootfs tests require the work order's separate S2 approval; package/index validation and real signing alone do not establish installation.
+The latest reader correction and live evidence are recorded in [the validation matrix](docs/live-validation.md#current-verified-correction). The approved S2 client proof is recorded [here](docs/live-validation.md#openwrt-client-installation-proof); package/index validation alone was not used as an installation claim.
 
 ## Trusted ownership and key boundaries
 
@@ -594,3 +594,9 @@ Incoming facts identify only the releasing product; sibling facts come from pinn
 Feed keys come from the current default-branch overlay. The captured signing-family key must equal that authority before signing; otherwise a fresh capture is required. Drain prepared publishers before rotation, and re-sign existing rows through the documented operator procedure. No key rotation occurred in this correction.
 
 Evidence is retained on the development machine under `/tmp/codex/build/snodec/package-ci/review-fixes-20261022T202117Z/`: frozen tests/hashes, red-before regressions, exact live snapshots/artifacts, composite certificate, final audits, accounting and handover. Public run links are in the matrix; no secrets are logged.
+
+## Verified OpenWrt client installations
+
+Approved S2 testing passed in official OpenWrt 24.10.8 and 25.12.5 x86_64 rootfs containers: strict signed-feed update, exact installation and execution of all four demo packages. There were 2 client cases,8 package installations/runtime checks and12 installed executable/library checksum comparisons. Native APK verification and package metadata checks also covered both architecture indexes,11 entries each.
+
+See [the exact versions, runtime outputs and limits](docs/live-validation.md#openwrt-client-installation-proof). No host software or CI code changed. No aarch64 emulation or runtime verification was performed; private/fault/exhaustion cases retain their matrix dispositions. This is sandbox functional evidence, not a SNodeC production rollout.
