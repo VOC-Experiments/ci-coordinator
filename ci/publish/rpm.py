@@ -23,7 +23,8 @@ def stage(row, packages, bundle, output):
     names = set()
     versions = {}
     context = json.loads((bundle / 'context.json').read_text())
-    expected_version = {project: package_version(row, context['versions'][project], os.environ['PACKAGE_RELEASE'])}
+    expected_version = json.loads((bundle / 'baseline.json').read_text()).get('versions', {})
+    expected_version[project] = package_version(row, context['versions'][project], os.environ['PACKAGE_RELEASE'])
     for package in packages.glob('*.rpm'):
         fields = package_metadata(package)
         name, arch = fields['name'], fields['arch']

@@ -596,3 +596,9 @@ Do not remove a source with request records: offboarding is out of scope. Source
 All four source hooks are being updated to export only their own SDK staging-record files and own provides record, retaining legitimate prerequisite export/import. See the [live matrix](docs/live-validation.md) for current proof and remaining gaps.
 
 The latest reader correction and live evidence are recorded in [the validation matrix](docs/live-validation.md#verified-reader-follow-up). Official OpenWrt client-rootfs tests require the work order's separate S2 approval; package/index validation and real signing alone do not establish installation.
+
+## Pinned ownership boundary follow-up
+
+The trusted publisher uses the incoming source only for the releasing product; sibling namespace facts come from their pinned published entries. Source-supplied omitted or historical sibling facts cannot claim overlapping-prefix package or SDK files. The single metadata validator requires an expected version for the resolved owner. Native staging supplies published prerequisite versions plus the captured own version. No credential scope, persisted field or integration interface changed.
+
+The final offline verification ran287 tests:286 passed and one real OpenWrt signer test skipped because local usign/apk tools are absent. All28 runner checks and22 additional static checks passed. Both unrelated offline deployments have identical hashes for22 generic files, also asserted against this deployment. Real OpenWrt client installation still requires the separate S2 test stage.

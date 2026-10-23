@@ -140,3 +140,11 @@ The first side1.2 source rerun succeeded, but its original row was superseded by
 The first capacity fixture put capacity at the top level and was rejected before ledger processing. It was restored, then settings.capacity=6 was validated and tested for eight minutes, then restored byte for byte. Those failures remain evidence rather than being counted as passing contention checks.
 
 Existing sandbox-only live-capacity-check.yml now instruments the actual capacity function with REST call counts, elapsed time and shared-PAT rate observations. It remains a fixture excluded from canonical code identity, and still asserts both unrelated probe jobs are counted. No parallel observer or permission change is introduced.
+
+## Follow-up evidence, 23 October 2026
+
+Publisher ownership regressions include omitted sibling facts, a poisoned historical sibling namespace, foreign SDK filenames and a missing expected-version owner. Valid own publication succeeds while foreign files are excluded and sibling entries remain unchanged. The final287-test offline run passed286 tests with one missing-OpenWrt-tools skip;28 runner checks and22 static checks also passed. Evidence is kept under `review-fixes-20261022T202117Z/owner2-*` on the development machine.
+
+Observer measurement run39871717858 issued35 endpoint invocations in12.273478893 seconds and counted both unrelated capacity-probe jobs. The shared PAT rate counters changed by32; that is not equated to invocation count or total reconciliation cost. This is a bounded sandbox observation, not a universal plan/rate guarantee.
+
+A separate deliberately sequenced Core-move/direct-App/failed-Side/operator-rerun test follows. Earlier direct Side failures and convergence are retained but are not relabeled as the required failed in-cascade arm proof. No run cancellation, ledger repair, permission change or credential rotation is involved.

@@ -314,8 +314,8 @@ def publish(root, bundle, incoming, row, generation, project, state=None):
         path = Path(name)
         if path.is_absolute() or '..' in path.parts or not (directory / path).resolve().is_relative_to(directory.resolve()) or (directory / path).is_symlink() or digest(directory / path) != checksum:
             raise RuntimeError('Artifact checksum mismatch')
-    incoming_owners, current_owners = ownership(metadata), ownership(current)
-    unsigned = {name: value for name, value in metadata['files'].items() if project_file(name, project, incoming_owners)}
+    incoming_owners, current_owners = ownership(dict(sources={project: metadata['sources'].get(project)})), ownership(current)
+    unsigned = {name: value for name, value in metadata['files'].items() if project_file(name, project, current_owners | incoming_owners)}
     tag = source_tag(metadata, project)
     previous = release_view(current, project, tag).get('publications', {}).get(project, {})
     identical = bool(receipt) and previous and all(previous.get(k) == v for k, v in receipt.items())

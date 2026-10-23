@@ -25,7 +25,8 @@ def stage(suite, packages, bundle, output, distribution='raspberrypios'):
     context = json.loads((bundle / 'context.json').read_text())
     owners = ownership(dict(sources=json.loads((bundle / 'sources.json').read_text())))
     row = dict(distribution=distribution, suite=suite)
-    expected_version = {project: package_version(row, context['versions'][project], os.environ['PACKAGE_RELEASE'])}
+    expected_version = json.loads((bundle / 'baseline.json').read_text()).get('versions', {})
+    expected_version[project] = package_version(row, context['versions'][project], os.environ['PACKAGE_RELEASE'])
     for package in packages.glob('*.deb'):
         fields = package_metadata(package)
         name, architecture = fields['name'], fields['arch']
