@@ -8,14 +8,14 @@ The [live test matrix](docs/live-validation.md) tracks guarantees across all san
 
 ## Current validation verdict
 
-**Changes required (22 October 2026).** Independent review found a blocking
-OpenWrt 24.10 feed issue: its signed `Packages` indexes are empty despite the
-published IPK files. Signature checks passed, but package discovery did not.
-Do not treat those rows as functional or this sandbox as go-live accepted.
-The Debian four-product diamond packages passed checksum and extracted-runtime
-checks. OpenWrt diamond scheduling remains under observation. Metadata validation,
-stale-work admission and key-authority findings are being checked separately.
-The [live matrix](docs/live-validation.md) distinguishes these results.
+**Changes complete for the tested scope (23 October 2026); no production go-live claim.**
+The empty OpenWrt 24.10 index defect is corrected: indexes now derive from verified own and retained package controls. Both architecture indexes, raw signatures, every indexed IPK checksum/size and control identity were independently checked. The trusted publisher rejects namespace/version/architecture spoofs across Debian/RPM/opkg/APK. Real OpenWrt client installation still requires the separate S2 approval for the rootfs/tool stage; signing and metadata checks alone do not prove it.
+
+The deliberately held/failed-arm diamond passed: direct App published outside Core lineage while Side was stale, with zero early Join captures/builds. One operator Side rerun was followed by exactly one Join capture 39885172814, source 39885255474 and publication. The final raw admission audit covers89 generations / 114 observations with zero errors;37 Join artifact/publication records were inspected with zero errors. Auditors use raw sources, revisions and owned checksums, including duplicate/stale negative self-tests. Counts are bounded evidence, not a universal timing claim.
+
+The final frozen offline suite ran 288 tests: 287 passed, zero failures/errors, one skipped because local OpenWrt signer tools are absent. All 28 runner and 22 static checks passed. Both complete unrelated offline deployments and the deployed coordinator match 22 generic files. No new CI state/schema/controller/workflow/permission was introduced.
+
+Healthy current source hooks are restored after the deliberate fixtures. Side v1.3.0@ccd1ff10e3f079dc3d3b327b34e966dae8977df8 capture 39889290108 published all five rows; exactly one corresponding healthy Join child per row published on final coordinator code e86bbe8. Previous tag commits, failed runs, bundles and negative fixtures remain immutable evidence. See the [item-by-item live matrix](docs/live-validation.md) for partial/blocked cases and the exact scope.
 
 ## What you need to do now
 
@@ -25,32 +25,8 @@ expected repository credential entries are configured. Secret contents were
 checked manually by the operator; runtime authentication and signing are tested
 separately below.
 
-**Live validation is underway (22 October 2026).**
-The empty-feed controller, tag notifications, moved-tag capture, revision
-reservation and persistent activation have passed on GitHub. Activating demo-app
-before demo-core correctly failed all five rows with missing-prerequisite
-reasons, while keeping activation. Subsequent Debian core and application builds
-published successfully; independent checks verified both APT signatures, every
-listed package checksum, package execution, sibling retention and by-hash files.
-All four OpenWrt source rows have built successfully. OpenWrt 25.12 x86_64's
-central APK signing, verification and publication have passed.
-
-The frozen local run executed **260 tests: 259 passed, zero failures/errors,
-one skipped** because local OpenWrt signing tools are unavailable. All 27
-contract, wrapper, lint and syntax checks passed. Both offline deployments and
-the sandbox committed tree match for all 22 generic core/workflow files.
-
-Live testing corrected a duplicate Git Authorization header, an ignored platform
-script directory, an SDK feed-name restriction and relative SDK-export operands.
-The first 24.10 publications were rejected because the assisted setup script
-encoded its usign key pair inconsistently. The operator approved repair of that
-sandbox-only key pair and secret. The corrected public key was committed and a fresh
-capture was created because verification keys are capture-pinned. Both 24.10
-architectures now pass actual usign signing, verification and publication:
-[x86_64](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39829293477)
-and [arm64](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39829430282).
-These signature checks did not test index completeness; review later found the
-24.10 indexes empty. Complete functional recovery remains under observation.
+**Prepared sandbox: configuration is complete; do not recreate its Apps or keys.**
+Tag activation, missing-prerequisite closure, moved-tag capture, highest-only status, direct older releases, source reruns, sibling/version/SDK retention, callback verification and the deliberately sequenced diamond have bounded live evidence. Rootfs/client installation and unapproved fault/permission probes remain incomplete. The current verdict and [live matrix](docs/live-validation.md) are authoritative; earlier evidence counts are historical.
 
 The observer PAT authenticates, reads the organization plan, and lists all six
 repositories. The approved policy accepts the complete paginated inventory when
@@ -61,8 +37,8 @@ failures still block admission. Capacity admission has now succeeded live.
 For a new deployment, follow [the credential steps below](#2-create-the-three-github-apps)
 from the beginning. In this prepared sandbox, do not recreate the existing Apps.
 
-In the current assisted setup session you may use
-[the temporary local setup page](http://127.0.0.1:18765/). It pre-fills the three
+The historical assisted setup used
+[the temporary local setup page](http://127.0.0.1:18765/). When running, it pre-fills the three
 App manifests, accepts GitHub's one-time creation callbacks, and saves the App
 keys in a private local directory. **Install each App with the exact repository
 selection below after creating it.** The page also links the observer-token
@@ -218,7 +194,7 @@ to **2.2 Capture Reader**. Keep the coordinator credentials where they are.
 private-key secret. Do not put either coordinator credential in the source
 repositories. Creating this App does not create the other two Apps.
 
-### 2.2 Capture Reader App — create, install, then save in both sources
+### 2.2 Capture Reader App — create, install, then save in all four sources
 
 This is a **new, separate App**, not another key generated for the Coordinator App.
 It lets source workflows read coordinator captures and tooling.
@@ -233,7 +209,7 @@ It lets source workflows read coordinator captures and tooling.
 6. Click **Generate a private key**. Save this App's downloaded PEM separately
    from the coordinator PEM. In the CLI examples: `bootstrap-private/capture-reader.pem`.
 7. Click **Install App** → **VOC-Experiments** → **Only select repositories** →
-   select **ci-coordinator only** → **Install**. Do not select either source or packages.
+   select **ci-coordinator only** → **Install**. Do not select any source repository or packages.
 8. Open [demo-core Actions Variables](https://github.com/VOC-Experiments/demo-core/settings/variables/actions).
    Create repository variable `PACKAGE_CAPTURE_APP_CLIENT_ID` with this
    **Capture Reader App's Client ID**.
@@ -247,11 +223,18 @@ It lets source workflows read coordinator captures and tooling.
     Create repository secret `PACKAGE_CAPTURE_APP_PRIVATE_KEY` with the **same
     Capture Reader PEM** you used in demo-core.
 
-**Checkpoint:** both source repositories now have their capture variable and
+12. Repeat the same repository-variable and repository-secret entries in
+    [demo-side variables](https://github.com/VOC-Experiments/demo-side/settings/variables/actions) /
+    [secrets](https://github.com/VOC-Experiments/demo-side/settings/secrets/actions), and
+    [demo-join variables](https://github.com/VOC-Experiments/demo-join/settings/variables/actions) /
+    [secrets](https://github.com/VOC-Experiments/demo-join/settings/secrets/actions). Use the same
+    Capture Reader Client ID and PEM as in demo-core and demo-app.
+
+**Checkpoint:** all four source repositories now have their capture variable and
 secret. Their names and values match each other. They do not match the
 coordinator's credentials. Now create the third App below.
 
-### 2.3 Notify App — create, install, then save in both sources
+### 2.3 Notify App — create, install, then save in all four sources
 
 This is a **third App** with its own Client ID and PEM. It lets source workflows
 notify and call back to the coordinator.
@@ -266,7 +249,7 @@ notify and call back to the coordinator.
 6. Click **Generate a private key**. Save this App's PEM separately from the
    other two. In the CLI examples: `bootstrap-private/notify.pem`.
 7. Click **Install App** → **VOC-Experiments** → **Only select repositories** →
-   select **ci-coordinator only** → **Install**. Do not select either source or packages.
+   select **ci-coordinator only** → **Install**. Do not select any source repository or packages.
 8. Open [demo-core Actions Variables](https://github.com/VOC-Experiments/demo-core/settings/variables/actions).
    Create repository variable `PACKAGE_NOTIFY_APP_CLIENT_ID` with this
    **Notify App's Client ID**.
@@ -279,6 +262,13 @@ notify and call back to the coordinator.
 11. Open [demo-app Actions Secrets](https://github.com/VOC-Experiments/demo-app/settings/secrets/actions).
     Create repository secret `PACKAGE_NOTIFY_APP_PRIVATE_KEY` with the **same
     Notify PEM** you used in demo-core.
+
+12. Repeat the same repository-variable and repository-secret entries in
+    [demo-side variables](https://github.com/VOC-Experiments/demo-side/settings/variables/actions) /
+    [secrets](https://github.com/VOC-Experiments/demo-side/settings/secrets/actions), and
+    [demo-join variables](https://github.com/VOC-Experiments/demo-join/settings/variables/actions) /
+    [secrets](https://github.com/VOC-Experiments/demo-join/settings/secrets/actions). Use the same
+    Notify Client ID and PEM as in demo-core and demo-app.
 
 ### 2.4 Check the completed App setup
 
@@ -583,30 +573,24 @@ The operator has configured `demo-side` and `demo-join` with the existing captur
 
 For onboarding, save the coordinator App installation selection **before** adding the source to `ci/projects.json`. Merely setting source secrets does not grant the coordinator access. Capture-reader and notify remain installed on `ci-coordinator` only; the source receives their narrow reader/notify credentials, never the coordinator key. Each new source activates only through its own valid version tag.
 
-The six-repository installation is now verified: [control run 39835348765](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39835348765) succeeded. Both new source notifications and captures succeeded. The join-first test retained activation while all five rows failed explicitly for missing side publications. The side was then activated, and the moved-root diamond/overlap tests are running.
+The six-repository installation is now verified: [control run 39835348765](https://github.com/VOC-Experiments/ci-coordinator/actions/runs/39835348765) succeeded. Both new source notifications and captures succeeded. The join-first test retained activation while all five rows failed explicitly for missing side publications. The side was then activated, and the moved-root diamond/overlap tests have the bounded proof described above.
 
-## Independent review correction (22 October 2026)
+## Review correction model
 
-The coordinator validates internal package namespace, version/revision and architecture before signing every own or retained package. OpenWrt 24.10 indexes are regenerated from verified package controls, including retained siblings; 25.12 indexes must cover every verified identity. The new code is deployed for live recertification; the prior empty-index failure is not called repaired until a new publication and real client proof succeed.
+The coordinator validates internal package namespace, version/revision and architecture before signing every own or retained package. OpenWrt 24.10 indexes are regenerated from verified package controls, including retained siblings; 25.12 indexes must cover every verified identity. New publications and independent index/package checks verify complete indexes; actual client installation remains a distinct S2 gap.
 
 The CAS reservation validates the prospective highest requested graph. Stale direct artifacts pass the same dependent arm gate after conversion; terminal failures keep their budgets. A registered child is no longer held by aggregate run lag. Invalid callbacks still allow reconciliation before the run fails. An unobservable capture stays reserved; recovery needs a new valid same-tag push event, not a rerun of the same source run. Failed build/publish jobs remain terminal until an operator acts or a separate new event creates new work.
 
 Do not remove a source with request records: offboarding is out of scope. Source ZIPs have origin/digest/path checks but no expanded-size quota. Availability of orphaned baseline commits is measured separately; no retention mechanism is added. Sandbox-only `live-capacity-check.yml` and demo-side's historical `capacity-probe.yml` are fixtures, excluded from canonical hash comparisons and retained until user-directed cleanup.
 
-All four source hooks are being updated to export only their own SDK staging-record files and own provides record, retaining legitimate prerequisite export/import. See the [live matrix](docs/live-validation.md) for current proof and remaining gaps.
+All four source hooks were updated to export only their own SDK staging-record files and own provides record, retaining legitimate prerequisite export/import. See the [live matrix](docs/live-validation.md) for current proof and remaining gaps.
 
-The latest reader correction and live evidence are recorded in [the validation matrix](docs/live-validation.md#verified-reader-follow-up). Official OpenWrt client-rootfs tests require the work order's separate S2 approval; package/index validation and real signing alone do not establish installation.
+The latest reader correction and live evidence are recorded in [the validation matrix](docs/live-validation.md#current-verified-correction). Official OpenWrt client-rootfs tests require the work order's separate S2 approval; package/index validation and real signing alone do not establish installation.
 
-## Pinned ownership boundary follow-up
+## Trusted ownership and key boundaries
 
-The trusted publisher uses the incoming source only for the releasing product; sibling namespace facts come from their pinned published entries. Source-supplied omitted or historical sibling facts cannot claim overlapping-prefix package or SDK files. The single metadata validator requires an expected version for the resolved owner. Native staging supplies published prerequisite versions plus the captured own version. No credential scope, persisted field or integration interface changed.
+Incoming facts identify only the releasing product; sibling facts come from pinned published entries. Omitted or poisoned sibling facts cannot claim overlapping-prefix binary or SDK files. The one metadata validator requires an expected owner/version and rejects control characters in binary filenames/internal names, before signing. Native staging uses published baseline versions plus the captured own version.
 
-The final offline verification ran287 tests:286 passed and one real OpenWrt signer test skipped because local usign/apk tools are absent. All28 runner checks and22 additional static checks passed. Both unrelated offline deployments have identical hashes for22 generic files, also asserted against this deployment. Real OpenWrt client installation still requires the separate S2 test stage.
+Feed keys come from the current default-branch overlay. The captured signing-family key must equal that authority before signing; otherwise a fresh capture is required. Drain prepared publishers before rotation, and re-sign existing rows through the documented operator procedure. No key rotation occurred in this correction.
 
-## Final index identity guard
-
-The shared package validator rejects control characters in binary filenames and internal names before index generation or signing. This applies to source staging and every own or retained indexed package. A newline in a filename could otherwise create an extra opkg paragraph despite valid controls. Seven public publisher-boundary subcases reproduced the gap before the change; all now reject without signing or feed mutation. No live malformed index was generated, no state/schema/permission/workflow was added, and the correction is one net production line.
-
-The final frozen offline run executed288 tests:287 passed, no failures/errors and one missing-OpenWrt-tools skip, plus28 runner checks and22 static checks. Both offline deployments and this committed coordinator match all22 generic files. Earlier six live namespace negatives ran on1491260 and had only status/presentation push differences; their normal identity strings are unaffected by this additional control-character guard.
-
-The deliberate delayed/out-of-lineage/failed-arm sequence is independently certified: Core39878350568, direct App39881613016, Side39881137679 with one operator rerun of39881285597; exactly one Join capture39885172814, source39885255474 and publication. The raw admission audit covered83 generations/97 observations with no errors;32 Join artifacts and exact publication snapshots were checked without errors. OpenWrt client installation remains a separate S2 approval stage. The current fault hooks are being restored to normal after this proof; their commits and captures remain immutable history.
+Evidence is retained on the development machine under `/tmp/codex/build/snodec/package-ci/review-fixes-20261022T202117Z/`: frozen tests/hashes, red-before regressions, exact live snapshots/artifacts, composite certificate, final audits, accounting and handover. Public run links are in the matrix; no secrets are logged.
