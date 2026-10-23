@@ -541,7 +541,7 @@ from a two-product graph or claim mocked capacity timing as a live measurement.
 | Capacity unknown | Verify observer resource owner, all-repository coverage, Plan/Actions read permissions and expiry; retain ledger and inspect reason/backoff |
 | Missing prerequisite | Publish matching core row; the failed direct node stays closed, while a later genuine cascade can select the highest app tag |
 | Transient deferral and no active runs | Wait for retry_at and the next delivered scheduled control run, or use Coordinate package builds with empty inputs to wake without resetting budgets; GitHub can delay/drop schedules |
-| Deterministic build/publication failure | Repair cause, then authorized operator retry or a new valid source event; no endless automatic retries |
+| Failed source/publisher job | Repair cause, then authorized operator retry or a new valid source event; no endless automatic retries |
 | Expired build artifact | Operator retry rebuilds after discarding expired artifact |
 | Expired immutable capture | New valid source release notification is required; never silently recapture different bytes |
 | Retried held capture under old root | It retires with an actionable reason; current root re-evaluates the dependent |
@@ -590,7 +590,7 @@ Do not remove a source with request records: offboarding is out of scope. Source
 
 All four source hooks were updated to export only their own SDK staging-record files and own provides record, retaining legitimate prerequisite export/import. See the [live matrix](docs/live-validation.md) for current proof and remaining gaps.
 
-The latest reader correction and live evidence are recorded in [the validation matrix](docs/live-validation.md#current-verified-correction). The approved S2 client proof is recorded [here](docs/live-validation.md#openwrt-client-installation-proof); package/index validation alone was not used as an installation claim.
+Current UI, revision-sharing and client evidence is recorded in [the final validation section](docs/live-validation.md#final-ui-and-diamond-validation). Package/index validation alone is not used as an installation claim; historical baselines and partial/blocked matrix cases remain explicit.
 
 ## Trusted ownership and key boundaries
 
@@ -602,12 +602,20 @@ Evidence is retained on the development machine under `/tmp/codex/build/snodec/p
 
 ## Verified OpenWrt client installations
 
-Approved S2 testing passed in official OpenWrt 24.10.8 and 25.12.5 x86_64 rootfs containers: strict signed-feed update, exact installation and execution of all four demo packages. There were 2 client cases,8 package installations/runtime checks and12 installed executable/library checksum comparisons. Native APK verification and package metadata checks also covered both architecture indexes,11 entries each.
+Approved S2 testing passed in official OpenWrt 24.10.8 and 25.12.5 x86_64 rootfs containers: strict signed-feed update, exact installation and execution of all four demo packages. There were 2 client cases,8 package installations/runtime checks and12 installed executable/library checksum comparisons. Native APK verification and package metadata checks also covered both architecture indexes,16 entries each in the latest frozen feed.
 
-See [the exact versions, runtime outputs and limits](docs/live-validation.md#openwrt-client-installation-proof). No host software or CI code changed. No aarch64 emulation or runtime verification was performed; private/fault/exhaustion cases retain their matrix dispositions. This is sandbox functional evidence, not a SNodeC production rollout.
+See [the current exact versions, runtime outputs and limits](docs/live-validation.md#final-ui-and-diamond-validation). These client checks installed no host software and changed no CI code. No aarch64 emulation or runtime verification was performed; private/fault/exhaustion cases retain their matrix dispositions. This is sandbox functional evidence, not a SNodeC production rollout.
 
 ## Revision sharing and GitHub-contained recovery
 
 Global status headings show the highest source version. Each target retains its actual package revision. Cascade captures with equal selected tag/SHA/tooling and prerequisite release identities can share a revision; row history or changed inputs can still produce different numbers. Direct captures stay fresh. Sharing is a capture-time provenance fact, not equality of package bytes or later stale-rebuild inputs. An unsaved rerun with changed or unknown provenance fails closed; use the existing operator node retry for a fresh capture.
 
 The controller shares one verified source-pair download between callback handling and reconciliation. A transient read failure defers through the existing ledger backoff; it does not spend a publication attempt. GitHub schedule runs at UTC minutes 3,13,23,33,43,53 are best effort. Once no work is in flight, recovery requires a delivered schedule, another normal event, or an authorized empty-input controller wake. This CI uses GitHub only; there is no external scheduler or timing guarantee. The cron offset is a mitigation with no measured improvement claim.
+
+## Current status pages and completed live turn
+
+The tested coordinator code is `31ad5f3`. All 20 current project/row nodes published: Core 1.1.0/r15, App 1.3.0/r31, Side 1.4.0/r23 and Join 1.2.0/r42. All five Join rows share r42 in this verified common-input wave; differing inputs/row history can still produce different revisions. The four sandbox source mains now contain their tested healthy tags.
+
+Available shows the actual package version without current/outdated icons. In build uses status icons and explicit Pending/Building/Publishing/Waiting/Blocked labels, linking immediate prerequisites where relevant. Idle dashes are centered; other labels are left-aligned. The three review corrections also remove false waits from idle prerequisites, hide satisfied obsolete failed capture holders, and clear old job links on artifact-free retry. All 41 focused UI/control-render checks pass; actual GitHub HTML was verified on all 4 pages/20 rows. The full build/failure/retry suite was not repeated for these UI-only changes.
+
+Both official x86_64 OpenWrt clients verify signatures, install all 4 packages and run with Core 60/Side 62. All 4 OpenWrt indexes independently verify16 retained packages each; Debian signature/index/control and extracted runtime pass too. Current publisher replay leaves the entire feed ref unchanged; an older dependent artifact is rejected without changing it. One HTTP503 publisher failure required a recorded manual rerun. Cron remains best effort; no unattended timing guarantee is claimed. See the [full matrix, limits and evidence](docs/live-validation.md#final-ui-and-diamond-validation). SNodeC GitHub remains untouched.
