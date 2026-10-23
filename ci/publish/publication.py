@@ -314,6 +314,9 @@ def publish(root, bundle, incoming, row, generation, project, state=None):
         path = Path(name)
         if path.is_absolute() or '..' in path.parts or not (directory / path).resolve().is_relative_to(directory.resolve()) or (directory / path).is_symlink() or digest(directory / path) != checksum:
             raise RuntimeError('Artifact checksum mismatch')
+    actual = {p.relative_to(directory).as_posix() for p in directory.rglob('*') if p.is_file() or p.is_symlink()}
+    if actual != set(metadata['files']) | {'build.json'}:
+        raise RuntimeError('Artifact contains undeclared files')
     incoming_owners, current_owners = ownership(dict(sources={project: metadata['sources'].get(project)})), ownership(current)
     unsigned = {name: value for name, value in metadata['files'].items() if project_file(name, project, current_owners | incoming_owners)}
     tag = source_tag(metadata, project)

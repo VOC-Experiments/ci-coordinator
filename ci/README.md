@@ -53,7 +53,10 @@ GCC/dpkg without CMake.
 OpenWrt hooks run from the captured archive in the selected SDK, supply the
 recipe and `compile()` function, and use the existing `sdk-export` contract for
 development files needed by dependents. A dependent imports the matching
-published SDK export, with identity/checksum verification. Source jobs never
+published SDK export, with identity/checksum verification. Hooks must not rebuild or replace imported
+prerequisites; suppress `package/feeds/package_ci/<dependency>/compile` in their `make` command.
+The post-compile import conflict check rejects changed bytes/links; missing ordinary files are restored.
+Byte-identical rebuilds pass, so this check alone does not prove that no rebuild occurred. Source jobs never
 sign packages or acquire feed write/signing credentials.
 
 The source wrapper calls this deployment's `notify-release.yml@main` on tag

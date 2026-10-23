@@ -9,7 +9,7 @@ This is a test plan and evidence register, not an all-green claim. Status is exp
 | L03 | core/coordinator | Moved tag exact SHA/fresh revision | passed | 39828642106 and moved Core39878350568; immutable old bundles |
 | L04 | four sources/packages | Per-row cascade and useful feed | passed scheduling and x86_64 clients | All five rows converge; signed feed/index evidence and both x86_64 client installations/runtime pass. No aarch64 runtime claim. |
 | L05 | four sources/packages | Debian signatures/checksum/runtime | passed in sampled Debian feed | Downloaded/extracted four binaries:42,42,43,42+43; no host installation |
-| L06 | four sources/packages | 24.10 signing/membership/SDK reuse | passed x86_64 client; aarch64 runtime untested | Official 24.10.8 x86_64: opkg signature check,4 exact package installs and runtime pass;6 installed payload hashes match IPKs. Both architecture indexes/IPK controls and SDK reuse checked; no aarch64 execution. |
+| L06 | four sources/packages | 24.10 signing/membership/SDK reuse | passed x86_64 client; aarch64 runtime untested | Official 24.10.8 x86_64: opkg signature check,4 exact package installs and runtime pass;6 installed payload hashes match IPKs. Both architecture indexes/IPK controls and import checks passed; fixtures may rebuild prerequisites. No aarch64 execution. |
 | L07 | four sources/packages | 25.12 APK signing/reuse | passed x86_64 client; aarch64 runtime untested | Official 25.12.5 x86_64: signed-index APK update/add,4 exact package installs/runtime pass;6 installed payload hashes match APK metadata. Both APK index signatures and 11 identities per architecture verified; no aarch64 execution. |
 | L08 | coordinator | Malformed/unknown intake | passed, retained | Seven exact rejection errors/no reservation,39830357019–39830378760 |
 | L09 | coordinator | Wrong source event/run | passed, retained | 39830375493/39830378760 reject before reserve |
@@ -43,9 +43,9 @@ This is a test plan and evidence register, not an all-green claim. Status is exp
 | L37 | coordinator/packages | Current key authority | passed sampled key identities plus offline rotation regression | Every inspected exact publication snapshot matches all 3 authority keys; family mismatch fails before signing; no rotation performed |
 | L38 | coordinator/child sources | Registered child during aggregate lag | passed offline; live aggregate lag not observed | Public tick regression passes. Three parent-running ledger samples were observation lag: parent API updated_at precedes child creation by22–29seconds; no positive aggregate-lag claim |
 
-The current live graph is `demo-core → {demo-app, demo-side} → demo-join`, with Debian trixie amd64 and OpenWrt 24.10/25.12 x86_64 and aarch64_generic. Source tokens retain their coordinator/own-source boundary. All six repositories are configured; installation minting and both new source notification paths succeeded.
+The current live graph is `demo-core → {demo-app, demo-side} → demo-join`, with Debian trixie amd64 and OpenWrt 24.10/25.12 x86_64 and aarch64_generic. Workflow configuration limits source readers to coordinator/own-source paths. Negative permission/private-visibility probes remain partial (L32); readers can access other captures held by the coordinator. All six repositories are configured; installation minting and both new source notification paths succeeded.
 
-## Four-source diamond setup
+## Historical four-source diamond setup
 
 The sources are [demo-core](https://github.com/VOC-Experiments/demo-core), [demo-app](https://github.com/VOC-Experiments/demo-app), [demo-side](https://github.com/VOC-Experiments/demo-side) and [demo-join](https://github.com/VOC-Experiments/demo-join). Graph: `core → {app, side} → join`. All four source JSON files request five rows. No extra source checkout was created; the new fixtures were prepared through disposable bare Git repositories under the evidence directory.
 
@@ -128,7 +128,7 @@ The fixed coordinator is byte-identical to the locally verified canonical produc
 | --- | --- | --- |
 | L36 | Namespace spoof, lower fixture tags; Debian/RPM/opkg/APK | Passed: six real publisher rejections for core v0.7.43; package manifests unchanged (RPM subtree stays absent). Join v0.7.42 wrong-version artifact also rejected. Extra control-paragraph rejection is a new reader regression. |
 | L37 | Feed public keys versus deployed default-branch authority | Offline key-regression checks pass; verify after each new publication |
-| L38 | coordinator/child sources | Registered child during aggregate lag | passed offline; live aggregate lag not observed | Public tick regression passes. Three parent-running ledger samples were observation lag: parent API updated_at precedes child creation by22–29seconds; no positive aggregate-lag claim |
+| L38 | Registered child during aggregate lag | Passed offline only; three ledger samples were observation lag, with parent API completion 22–29seconds before child creation. No positive live aggregate-lag claim. |
 
 D02–D08 require deliberate sequencing and an independent audit of held capture intents, child builds, raw arm facts, artifact contents and exact publisher snapshots. Prior convergence is not exactly-once certification. The auditor includes duplicate and stale-arm negative self-tests. Local mocks do not certify real signatures or package installation. At that intermediate stage S2 approval was pending; the approved client results below supersede that gap. Run/artifact deletion, forced budget exhaustion and new permissions still need S3.
 
@@ -155,7 +155,7 @@ A separate deliberately sequenced Core-move/direct-App/failed-Side/operator-reru
 ## Current verified correction
 
 **Changes complete for the tested scope (23 October 2026); no production go-live claim.**
-The empty OpenWrt 24.10 index defect is corrected: indexes now derive from verified own and retained package controls. Both architecture indexes, raw signatures, every indexed IPK checksum/size and control identity were independently checked. The trusted publisher rejects namespace/version/architecture spoofs across Debian/RPM/opkg/APK. Approved S2 tests now prove signed-feed installation and runtime of all four products in official OpenWrt 24.10.8 and 25.12.5 x86_64 containers. The aarch64 rows have metadata/index evidence; native aarch64 installation and execution remain untested.
+The empty OpenWrt 24.10 index defect is corrected: indexes now derive from verified own and retained package controls. Both architecture indexes, raw signatures, every indexed IPK checksum/size and control identity were independently checked. Live negatives cover internal-name spoofs across Debian/RPM/opkg/APK; version and architecture negatives are offline tests (APK controls synthetic). Approved S2 tests now prove signed-feed installation and runtime of all four products in official OpenWrt 24.10.8 and 25.12.5 x86_64 containers. The aarch64 rows have metadata/index evidence; native aarch64 installation and execution remain untested.
 
 The deliberately held/failed-arm diamond passed: direct App published outside Core lineage while Side was stale, with zero early Join captures/builds. One operator Side rerun was followed by exactly one Join capture 39885172814, source 39885255474 and publication. The final raw admission audit covers89 generations / 114 observations with zero errors;37 Join artifact/publication records were inspected with zero errors. Auditors use raw sources, revisions and owned checksums, including duplicate/stale negative self-tests. Counts are bounded evidence, not a universal timing claim.
 
@@ -194,3 +194,21 @@ The certificate covers 2 client cases,8 package installs,8 runtime outputs and12
 Architecture limits: no aarch64 emulation was installed. The aarch64 APK index/control/archive checks pass; native installation/execution and APK ELF extraction are not claimed. Earlier IPK architecture/extraction evidence remains separate. This closes the x86_64 client gap, not every S3/private/fault/queue hypothesis in the matrix.
 
 Tests used existing rootless Podman 5.8.6 with dedicated storage/runroot/tmp under `/tmp/codex/build/snodec/package-ci/review-fixes-20261022T202117Z/s2-clients-20261023T062911Z/`. Containers were disposable, unprivileged and removed on exit; images/logs/storage remain for review. No host packages, signing keys, permissions, source tags, CI code or SNodeC external state changed. The initial boot-directory/BusyBox/heredoc harness failures and exact package-proof qualifications are retained beside `certificate.json`; they are not CI defects. The pre-existing 288-test suite was not rerun for container/documentation-only work.
+
+## Prepared boundary-fix retest (not yet executed)
+
+The proposed shared correction adds four production lines: rerun the existing SDK import conflict check after `compile`,
+and require the artifact directory inventory to equal the checksum manifest plus `build.json` before publication.
+The SDK check rejects changed bytes/links; missing ordinary files are restored, and byte-identical rebuilds pass.
+It does not certify that the dependent avoided a prerequisite rebuild. Source hooks must suppress such rebuilds.
+
+| Case | Preparation and pass criteria | Current status |
+| --- | --- | --- |
+| BF01 | Permanent real `.tar.zst` import tests: unchanged/path rewrites, changed bytes, links/type, missing-file repair | Passed locally: 292 tests, 291 passed, one host signer skip |
+| BF02 | Publisher boundary: extra file/package/nested/hidden/link rejected; flat and nested RPM inventories admitted | Passed locally: 292 tests, 291 passed, one host signer skip |
+| BF03 | Fresh tagged dependent builds on 24.10 and 25.12 x86_64; post-compile check, receipt, signed index and payload evidence | Not run |
+| BF04 | Lower-tag negative appends an undeclared harmless file after stage; publisher rejects before package/index changes | Not run |
+
+A failed negative publication can update the execution ledger and rendered failure status. Acceptance requires unchanged
+package manifests, indexes, signatures and package payloads, rather than an unchanged whole feed ref.
+All SNodeC GitHub repositories, production tags and feeds are outside this sandbox retest.

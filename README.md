@@ -1,5 +1,9 @@
 # Canonical package CI — VOC-Experiments
 
+> **Boundary-fix preparation:** four additional shared production lines are prepared locally; not deployed yet.
+> The new local suite passed 292 tests (291 passed, one host signer skip), plus28 runner and31 static checks. Live dependent builds and the undeclared-file publisher negative are still pending.
+> Earlier live results below cover the previous deployed revision; the new boundary checks are not yet live-certified.
+
 This organization is a disposable **first deployment** of the canonical package CI.
 It uses its own repositories, credentials, signing keys and fresh package feed.
 It does not read or migrate the SNodeC feed, and it does not use SNodeC credentials.
@@ -9,7 +13,7 @@ The [live test matrix](docs/live-validation.md) tracks guarantees across all san
 ## Current validation verdict
 
 **Changes complete for the tested scope (23 October 2026); no production go-live claim.**
-The empty OpenWrt 24.10 index defect is corrected: indexes now derive from verified own and retained package controls. Both architecture indexes, raw signatures, every indexed IPK checksum/size and control identity were independently checked. The trusted publisher rejects namespace/version/architecture spoofs across Debian/RPM/opkg/APK. Approved S2 tests now prove signed-feed installation and runtime of all four products in official OpenWrt 24.10.8 and 25.12.5 x86_64 containers. The aarch64 rows have metadata/index evidence; native aarch64 installation and execution remain untested.
+The empty OpenWrt 24.10 index defect is corrected: indexes now derive from verified own and retained package controls. Both architecture indexes, raw signatures, every indexed IPK checksum/size and control identity were independently checked. Live negatives cover internal-name spoofs across Debian/RPM/opkg/APK; version and architecture negatives are offline tests (APK controls synthetic). Approved S2 tests now prove signed-feed installation and runtime of all four products in official OpenWrt 24.10.8 and 25.12.5 x86_64 containers. The aarch64 rows have metadata/index evidence; native aarch64 installation and execution remain untested.
 
 The deliberately held/failed-arm diamond passed: direct App published outside Core lineage while Side was stale, with zero early Join captures/builds. One operator Side rerun was followed by exactly one Join capture 39885172814, source 39885255474 and publication. The final raw admission audit covers89 generations / 114 observations with zero errors;37 Join artifact/publication records were inspected with zero errors. Auditors use raw sources, revisions and owned checksums, including duplicate/stale negative self-tests. Counts are bounded evidence, not a universal timing claim.
 

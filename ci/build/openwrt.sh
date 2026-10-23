@@ -29,6 +29,7 @@ CONFIG_PACKAGE_$(python3 -c 'import os; from ci.repository import PROJECTS; prin
 EOF
 make defconfig
 compile
+python3 -m ci.repository sdk-dependency "$sdk" "$bundle" "$feed/../dependencies"
 arch=$(sed -n 's/^CONFIG_TARGET_ARCH_PACKAGES="\(.*\)"/\1/p' .config)
 repository="bin/packages/$arch/package_ci"
 find "$feed/../dependencies" -maxdepth 1 -type f \( -name '*.ipk' -o -name '*.apk' \) -exec cp -t "$repository" {} +
