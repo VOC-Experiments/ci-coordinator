@@ -414,8 +414,9 @@ def package_metadata(path):
 
 def validate_package(owners, versions, filename, fields, row):
     owner = package_owner(fields['name'], owners)
-    if owner not in versions or not project_file(filename, owner, owners):
-        raise ValueError('Package name and filename disagree with pinned ownership: ' + fields['name'])
+    if (re.search(r'[\x00-\x1f\x7f]', filename + fields['name'])
+            or owner not in versions or not project_file(filename, owner, owners)):
+        raise ValueError('Package name and filename disagree with pinned ownership: ' + ascii(fields['name'])[1:-1])
     if fields['version'] != versions[owner]:
         raise ValueError('Package version disagrees with pinned release: ' + fields['name'])
     if row.get('arch') and fields['arch'] not in {row['arch'], 'noarch' if filename.endswith('.rpm') else 'all'}:

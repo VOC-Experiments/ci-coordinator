@@ -148,3 +148,11 @@ Publisher ownership regressions include omitted sibling facts, a poisoned histor
 Observer measurement run39871717858 issued35 endpoint invocations in12.273478893 seconds and counted both unrelated capacity-probe jobs. The shared PAT rate counters changed by32; that is not equated to invocation count or total reconciliation cost. This is a bounded sandbox observation, not a universal plan/rate guarantee.
 
 A separate deliberately sequenced Core-move/direct-App/failed-Side/operator-rerun test follows. Earlier direct Side failures and convergence are retained but are not relabeled as the required failed in-cascade arm proof. No run cancellation, ledger repair, permission change or credential rotation is involved.
+
+## Final index identity guard
+
+The shared package validator rejects control characters in binary filenames and internal names before index generation or signing. This applies to source staging and every own or retained indexed package. A newline in a filename could otherwise create an extra opkg paragraph despite valid controls. Seven public publisher-boundary subcases reproduced the gap before the change; all now reject without signing or feed mutation. No live malformed index was generated, no state/schema/permission/workflow was added, and the correction is one net production line.
+
+The final frozen offline run executed288 tests:287 passed, no failures/errors and one missing-OpenWrt-tools skip, plus28 runner checks and22 static checks. Both offline deployments and this committed coordinator match all22 generic files. Earlier six live namespace negatives ran on1491260 and had only status/presentation push differences; their normal identity strings are unaffected by this additional control-character guard.
+
+The deliberate delayed/out-of-lineage/failed-arm sequence is independently certified: Core39878350568, direct App39881613016, Side39881137679 with one operator rerun of39881285597; exactly one Join capture39885172814, source39885255474 and publication. The raw admission audit covered83 generations/97 observations with no errors;32 Join artifacts and exact publication snapshots were checked without errors. OpenWrt client installation remains a separate S2 approval stage. The current fault hooks are being restored to normal after this proof; their commits and captures remain immutable history.
