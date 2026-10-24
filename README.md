@@ -8,6 +8,10 @@ It does not read or migrate the SNodeC feed, and it does not use SNodeC credenti
 
 The [live test matrix](docs/live-validation.md) tracks guarantees across all sandbox repositories, evidence and unresolved setup.
 
+The [guided bootstrap tool proposal](docs/bootstrap-tool-design.md) describes
+future setup, project onboarding, diagnostics, and the required browser steps.
+It is a design proposal; those commands are not implemented.
+
 ## Current validation verdict
 
 The [completed live turn](#current-status-pages-and-completed-live-turn) records the current versions, deployed code and results. All 20 current project/row nodes are published, including all five Join rows at r42. The earlier 288-test results and e86bbe8 deployment are historical, not the current verdict.
