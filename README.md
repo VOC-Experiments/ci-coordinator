@@ -1,8 +1,6 @@
 # Canonical package CI — VOC-Experiments
 
-> **Boundary-fix preparation:** four additional shared production lines are prepared locally; not deployed yet.
-> The new local suite passed 292 tests (291 passed, one host signer skip), plus28 runner and31 static checks. Live dependent builds and the undeclared-file publisher negative are still pending.
-> Earlier live results below cover the previous deployed revision; the new boundary checks are not yet live-certified.
+> **Sandbox validation complete for the tested scope.** Boundary fixes are deployed and live-tested. See the [current results and limits](#current-status-pages-and-completed-live-turn) and [validation matrix](docs/live-validation.md#final-ui-and-diamond-validation). SNodeC deployment has not started.
 
 This organization is a disposable **first deployment** of the canonical package CI.
 It uses its own repositories, credentials, signing keys and fresh package feed.
@@ -12,14 +10,11 @@ The [live test matrix](docs/live-validation.md) tracks guarantees across all san
 
 ## Current validation verdict
 
-**Changes complete for the tested scope (23 October 2026); no production go-live claim.**
-The empty OpenWrt 24.10 index defect is corrected: indexes now derive from verified own and retained package controls. Both architecture indexes, raw signatures, every indexed IPK checksum/size and control identity were independently checked. Live negatives cover internal-name spoofs across Debian/RPM/opkg/APK; version and architecture negatives are offline tests (APK controls synthetic). Approved S2 tests now prove signed-feed installation and runtime of all four products in official OpenWrt 24.10.8 and 25.12.5 x86_64 containers. The aarch64 rows have metadata/index evidence; native aarch64 installation and execution remain untested.
+The [completed live turn](#current-status-pages-and-completed-live-turn) records the current versions, deployed code and results. All 20 current project/row nodes are published, including all five Join rows at r42. The earlier 288-test results and e86bbe8 deployment are historical, not the current verdict.
 
-The deliberately held/failed-arm diamond passed: direct App published outside Core lineage while Side was stale, with zero early Join captures/builds. One operator Side rerun was followed by exactly one Join capture 39885172814, source 39885255474 and publication. The final raw admission audit covers89 generations / 114 observations with zero errors;37 Join artifact/publication records were inspected with zero errors. Auditors use raw sources, revisions and owned checksums, including duplicate/stale negative self-tests. Counts are bounded evidence, not a universal timing claim.
+The latest focused UI/control-render verification passed all 41 tests. The retained full baseline ran 312 tests (311 passed, one host-signer skip); it was not repeated for the UI-only changes. All 22 shared CI files match the verified DP working-tree bytes. Detailed client, diamond, replay and coverage evidence is maintained in the [final validation section](docs/live-validation.md#final-ui-and-diamond-validation).
 
-The final frozen offline suite ran 288 tests: 287 passed, zero failures/errors, one skipped because local OpenWrt signer tools are absent. All 28 runner and 22 static checks passed. Both complete unrelated offline deployments and the deployed coordinator match 22 generic files. No new CI state/schema/controller/workflow/permission was introduced.
-
-Healthy current source hooks are restored after the deliberate fixtures. Side v1.3.0@ccd1ff10e3f079dc3d3b327b34e966dae8977df8 capture 39889290108 published all five rows; exactly one corresponding healthy Join child per row published on final coordinator code e86bbe8. Previous tag commits, failed runs, bundles and negative fixtures remain immutable evidence. See the [item-by-item live matrix](docs/live-validation.md) for partial/blocked cases and the exact scope.
+This completes the stated sandbox scope, not production certification for every SNodeC build family. Real SNodeC family builds and APT/DNF installation checks remain production rollout validation gates. GitHub schedules are best effort; failed jobs can require operator recovery. No SNodeC GitHub deployment has occurred.
 
 ## What you need to do now
 
