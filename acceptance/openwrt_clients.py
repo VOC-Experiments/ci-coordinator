@@ -192,7 +192,13 @@ def main():
             assert rejected.returncode != 0 and re.search(
                 r"untrusted|signature.*fail|fail.*signature", rejected.stdout, re.IGNORECASE
             ), "no signature rejection observed with unrelated keys"
-            accepted = container(image, public, version_comparisons(target["format"]) + positive, package, args.command)
+            accepted = container(
+                image,
+                public,
+                "mkdir -p /tmp /var/lock\n" + version_comparisons(target["format"]) + positive,
+                package,
+                args.command,
+            )
             assert accepted.returncode == 0, "authenticated repository refresh/installation failed"
             assert accepted.stdout.strip().splitlines()[-1] == args.expected_output, "installed runtime output mismatch"
             print(
