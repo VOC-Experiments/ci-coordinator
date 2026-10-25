@@ -1,0 +1,27 @@
+name: core-ci deployment credential check
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  observer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check configured source Actions read access without exposing credentials
+        env:
+          SOURCE_ARTIFACT_TOKEN: ${{ secrets.PACKAGES_OBSERVER_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          token = os.environ['SOURCE_ARTIFACT_TOKEN']
+          assert token, 'Source artifact reader secret is missing'
+          for name in ['demo-core', 'demo-app', 'demo-side', 'demo-join']:
+              request = urllib.request.Request(
+                  'https://api.github.com/repos/VOC-Experiments/' + name + '/actions/artifacts?per_page=1',
+                  headers={'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'User-Agent': 'core-ci-deployment-check'})
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  result = json.load(response)
+              assert 'artifacts' in result
+              print(name + ': configured source Actions reader accepted')
+          PY
