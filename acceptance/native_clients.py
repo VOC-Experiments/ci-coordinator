@@ -68,7 +68,10 @@ def main():
                     + key
                     + "\n"
                 )
-            negative = "dnf -y --setopt=reposdir=/proof/bad makecache\n"
+            negative = (
+                "dnf -y --setopt=reposdir=/proof/bad makecache\n"
+                'dnf -y --setopt=reposdir=/proof/bad install "$PACKAGE-$VERSION"\n'
+            )
             positive = (
                 "dnf -y --setopt=reposdir=/proof/good makecache\n"
                 'dnf -y --setopt=reposdir=/proof/good install "$PACKAGE-$VERSION"\n'
