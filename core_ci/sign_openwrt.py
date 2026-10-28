@@ -20,13 +20,13 @@ from sign_native import (
 )
 
 
-def update(selected, build_result, publication_run, artifacts, feed, private_key, public_key, temporary_root):
+def update(selected, build_result, publication_run, artifacts, feed, private_key, public_key, temporary_root, sdk_archive):
     feed = Path(feed).resolve()
     receipt = retained_receipt(selected, build_result, publication_run, feed)
     if receipt is None:
         # The source artifact supplies no executable or key authority. Re-read official metadata and verify the SDK again.
         environment = read_json(Path(artifacts) / "manifest.json")["environment"]
-        sdk, staging = prepare(selected["target"], environment, Path(temporary_root) / "sdk")
+        sdk, staging = prepare(selected["target"], environment, Path(temporary_root) / "sdk", sdk_archive)
         manifest = verify_manifest(selected, artifacts, build_result)
         target = selected["target"]
         package_format = target["build"]["format"]
@@ -38,14 +38,7 @@ def update(selected, build_result, publication_run, artifacts, feed, private_key
         )
         require(Path(private_key).stat().st_mode & 0o077 == 0, "private key requires owner-only permissions")
         receipt = publication_receipt(selected, build_result, publication_run, manifest)
-        folder = (
-            feed
-            / "openwrt"
-            / feed_component(target["suite"])
-            / feed_component(target["arch"])
-            / package_format
-            / environment["sdk"]["sha256"]
-        )
+        folder = feed / "openwrt" / feed_component(target["suite"]) / feed_component(target["arch"])
         folder.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="verification-", dir=temporary_root) as temporary:
             scratch = Path(temporary)
@@ -82,7 +75,10 @@ def update(selected, build_result, publication_run, artifacts, feed, private_key
                     "APK key must use EC P-256",
                 )
             for package in manifest["packages"]:
-                filename = package["name"] + "-" + package["version"] + "." + package_format
+                filename = (
+                    f"{package['name']}_{package['version']}_{package['arch']}.ipk" if package_format == "ipk"
+                    else f"{package['name']}-{package['version']}.apk"
+                )
                 destination = folder / filename
                 add_new(Path(artifacts) / package["file"], destination)
                 if package_format == "apk":
