@@ -2,11 +2,16 @@ name: One-time sandbox key renewal
 run-name: Renew existing sandbox signing key for one year
 on:
   workflow_dispatch:
+    inputs:
+      phase:
+        type: choice
+        default: renew
+        options: [renew, publish]
 permissions:
   contents: read
 jobs:
   renew:
-    if: github.actor_id == vars.CONTROLLER_APP_BOT_ID
+    if: github.actor_id == vars.CONTROLLER_APP_BOT_ID && inputs.phase != 'publish'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: package-publication
@@ -57,3 +62,60 @@ jobs:
           retention-days: 1
           if-no-files-found: error
           overwrite: false
+  publish:
+    if: github.actor_id == vars.CONTROLLER_APP_BOT_ID && inputs.phase == 'publish'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: package-publication
+    concurrency:
+      group: core-ci-feed-${{ vars.FEED_REPOSITORY }}-${{ vars.FEED_BRANCH }}
+      cancel-in-progress: false
+      queue: max
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      CONTROLLER_APP_BOT_ID: ${{ vars.CONTROLLER_APP_BOT_ID }}
+      PACKAGES_GPG_FINGERPRINT: ${{ vars.PACKAGES_GPG_FINGERPRINT }}
+      FEED_REPOSITORY: ${{ vars.FEED_REPOSITORY }}
+      FEED_REPOSITORY_ID: ${{ vars.FEED_REPOSITORY_ID }}
+      FEED_BRANCH: ${{ vars.FEED_BRANCH }}
+      FEED_WRITER_APP_ID: ${{ vars.FEED_WRITER_APP_ID }}
+      FEED_WRITER_INSTALLATION_ID: ${{ vars.FEED_WRITER_INSTALLATION_ID }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: 230e594f78ccf51108cba5db910ea41f87f59876
+          path: tooling
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: ${{ vars.FEED_REPOSITORY }}
+          ref: ${{ vars.FEED_BRANCH }}
+          path: feed
+          persist-credentials: false
+      - name: Publish renewed verification metadata
+        env:
+          PACKAGES_APP_PRIVATE_KEY: ${{ secrets.PACKAGES_APP_PRIVATE_KEY }}
+        run: |
+          python3 - <<'PUBLISH'
+          import os,shutil,subprocess,tempfile
+          from pathlib import Path
+          import sys
+          sys.path.insert(0,str(Path('tooling/core_ci').resolve()))
+          from contract import output,require
+          from publish import checked_push,prepare_commit,writer_token
+          expected=os.environ['PACKAGES_GPG_FINGERPRINT']; feed=Path('feed').resolve(); renewed=Path('tooling/keys/apt.asc').resolve(); current=feed/'keys/apt.asc'
+          require(os.environ['GITHUB_ACTOR_ID']==os.environ['CONTROLLER_APP_BOT_ID'] and os.environ['GITHUB_RUN_ATTEMPT']=='1','operator actor/attempt differs')
+          with tempfile.TemporaryDirectory(dir=os.environ['RUNNER_TEMP'],prefix='public-key-update-') as temporary:
+              root=Path(temporary);root.chmod(0o700)
+              for path in (current,renewed):
+                  result=output(['gpg','--homedir',str(root),'--batch','--with-colons','--show-keys',str(path)])
+                  require([line.split(':')[9] for line in result.splitlines() if line.startswith('fpr:')]==[expected],'public signing identity changed')
+              require(current.read_bytes()!=renewed.read_bytes(),'public metadata already updated; no mutation needed')
+              shutil.copyfile(renewed,current)
+              prepare_commit(feed,['keys/apt.asc'],message='Renew sandbox verification-key validity; unchanged fingerprint')
+              private=root/'writer.pem';private.write_text(os.environ.pop('PACKAGES_APP_PRIVATE_KEY'));private.chmod(0o600)
+              config={'repository':os.environ['FEED_REPOSITORY'],'repository_id':int(os.environ['FEED_REPOSITORY_ID']),'branch':os.environ['FEED_BRANCH']}
+              token=writer_token(private,config)
+              revision=checked_push(feed,config['branch'],token)
+          print('Renewed public metadata committed:',revision)
+          PUBLISH
