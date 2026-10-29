@@ -1,0 +1,197 @@
+name: core-ci trusted publication
+run-name: Publish ${{ fromJSON(inputs.assignment).label }}
+on:
+  workflow_dispatch:
+    inputs:
+      execution:
+        required: true
+        type: string
+      attempt:
+        required: true
+        type: string
+      assignment_sha256:
+        required: true
+        type: string
+      assignment:
+        required: true
+        type: string
+      build_result:
+        required: false
+        type: string
+permissions:
+  contents: read
+  actions: read
+env:
+  CORE_CI_TOOLING_SHA: "ae4566c553493e207a3e47448e70e925256a90b7"
+  CONTROLLER_APP_BOT_ID: ${{ vars.CONTROLLER_APP_BOT_ID }}
+  FEED_REPOSITORY: ${{ vars.FEED_REPOSITORY }}
+  FEED_REPOSITORY_ID: ${{ vars.FEED_REPOSITORY_ID }}
+  FEED_BRANCH: ${{ vars.FEED_BRANCH }}
+  FEED_BASE_URL: ${{ vars.FEED_BASE_URL }}
+  PACKAGES_GPG_FINGERPRINT: ${{ vars.PACKAGES_GPG_FINGERPRINT }}
+  OPENWRT_DOWNLOAD_BASE_URL: ${{ vars.OPENWRT_DOWNLOAD_BASE_URL || 'https://downloads.openwrt.org' }}
+  EXECUTION: ${{ inputs.execution }}
+  ATTEMPT: ${{ inputs.attempt }}
+  ASSIGNMENT: ${{ inputs.assignment }}
+  ASSIGNMENT_SHA256: ${{ inputs.assignment_sha256 }}
+  BUILD_RESULT: ${{ inputs.build_result }}
+jobs:
+  tools:
+    name: Extract verified OpenWrt publication tools
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.tools.outputs.artifact-id }}
+      tools-sha256: ${{ steps.extracted.outputs.tools-sha256 }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ env.CORE_CI_TOOLING_SHA }}
+          path: tooling
+          persist-credentials: false
+      - name: Install SDK inspection tools
+        run: sudo apt-get update && sudo apt-get install -y zstd build-essential
+      - name: Prepare verified publication tools
+        id: extracted
+        env:
+          CORE_CI_SDK_ENVIRONMENT: ""
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$ASSIGNMENT" > "$RUNNER_TEMP/assignment.json"
+          python3 tooling/core_ci/sdk.py --assignment "$RUNNER_TEMP/assignment.json" \
+            --assignment-sha256 "$ASSIGNMENT_SHA256" --output "$RUNNER_TEMP/tools"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        id: tools
+        with:
+          name: ${{ fromJSON(inputs.assignment).artifact_name }}-tools
+          path: ${{ runner.temp }}/tools/
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
+  publish:
+    name: Publish ${{ fromJSON(inputs.assignment).label }}
+    needs: tools
+    concurrency:
+      group: core-ci-feed-${{ vars.FEED_REPOSITORY }}-${{ vars.FEED_BRANCH }}
+      cancel-in-progress: false
+      queue: max
+    outputs:
+      receipt-sha256: ${{ steps.prepared.outputs.receipt-sha256 }}
+      feed-revision: ${{ steps.prepared.outputs.feed-revision }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment: package-publication
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ env.CORE_CI_TOOLING_SHA }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ vars.FEED_REPOSITORY }}
+          ref: ${{ vars.FEED_BRANCH }}
+          path: feed
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        if: fromJSON(inputs.assignment).target.family == 'openwrt'
+        with:
+          artifact-ids: ${{ needs.tools.outputs.artifact-id }}
+          path: ${{ runner.temp }}/tools
+          merge-multiple: true
+      - name: Install standard signing and repository tools
+        if: fromJSON(inputs.assignment).target.family == 'native'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm gnupg apt-utils createrepo-c zstd build-essential python3-venv
+      - name: Install pinned template dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/core-ci-status-python"
+          "$RUNNER_TEMP/core-ci-status-python/bin/pip" install -r tooling/status-templates/requirements.txt
+      - name: Prepare signed feed update
+        id: prepared
+        env:
+          CORE_CI_TOOLS_SHA256: ${{ needs.tools.outputs.tools-sha256 }}
+          PUBLICATION_PHASE: ${{ fromJSON(inputs.assignment).kind == 'retention' && 'retain' || 'prepare' }}
+          CORE_CI_RENDER_PYTHON: ${{ runner.temp }}/core-ci-status-python/bin/python
+          GITHUB_TOKEN: ${{ github.token }}
+          APT_SIGNING_KEY: >-
+            ${{ (fromJSON(inputs.assignment).target.build.format == 'deb' || fromJSON(inputs.assignment).target.build.format == 'rpm')
+            && secrets.APT_SIGNING_KEY || '' }}
+          OPENWRT_USIGN_KEY: ${{ fromJSON(inputs.assignment).target.build.format == 'ipk' && secrets.OPENWRT_USIGN_KEY || '' }}
+          OPENWRT_APK_KEY: ${{ fromJSON(inputs.assignment).target.build.format == 'apk' && secrets.OPENWRT_APK_KEY || '' }}
+          PACKAGES_GPG_PASSPHRASE: >-
+            ${{ (fromJSON(inputs.assignment).target.build.format == 'deb' || fromJSON(inputs.assignment).target.build.format == 'rpm')
+            && secrets.PACKAGES_GPG_PASSPHRASE || '' }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$ASSIGNMENT" > "$RUNNER_TEMP/assignment.json"
+          printf '%s' "$BUILD_RESULT" > "$RUNNER_TEMP/build-result.json"
+          python3 - <<'OPERATOR'
+          """One-time sandbox operator preparation, not shipped worker/controller compatibility."""
+          import os
+          import sys
+          import tempfile
+          from pathlib import Path
+          sys.path.insert(0, str(Path('tooling/core_ci').resolve()))
+          from contract import assignment, file_hash, output, regular_file, require
+          from validate import trusted_deployment
+          from publish import prepare_commit, render, run_identity
+          from sign_openwrt import indexes, signing_tools
+          
+          selected = assignment(Path(os.environ['RUNNER_TEMP']) / 'assignment.json', os.environ['ASSIGNMENT_SHA256'])
+          trusted_deployment(selected)
+          run_identity(selected)
+          require(selected['kind'] == 'retention' and selected['scope'] == 'operator obsolete-layout removal', 'not the approved operator operation')
+          feed = Path('feed').resolve()
+          prefixes = ('apt/debian/trixie/', 'rpm/fedora/43/x86_64/', 'openwrt/24.10/x86_64/ipk/', 'openwrt/25.12/x86_64/apk/')
+          removed = []
+          for item in selected['objects']:
+              name = item['path']
+              require(name.startswith(prefixes) and name not in removed, 'outside operator-approved obsolete roots')
+              file = regular_file(feed, name)
+              require(all(not (feed / parent).is_symlink() for parent in Path(name).parents), 'linked removal')
+              require(file.stat().st_size == item['size'] and output(['git', '-C', str(feed), 'hash-object', '--no-filters', str(file)]) == item['git_blob'], 'operator snapshot bytes changed')
+              require('sha256' not in item or file_hash(file) == item['sha256'], 'recorded publication bytes changed')
+              removed.append(name)
+          actual = {str(path.relative_to(feed)) for prefix in prefixes for path in (feed / prefix).rglob('*') if path.is_file()}
+          require(actual == set(removed), 'obsolete-root inventory changed; inspect instead of guessing')
+          with tempfile.TemporaryDirectory(prefix='operator-signing-', dir=os.environ['RUNNER_TEMP']) as temporary:
+              scratch = Path(temporary)
+              private = scratch / 'usign.key'
+              private.write_text(os.environ.pop('OPENWRT_USIGN_KEY'))
+              private.chmod(0o600)
+              public = Path('tooling/keys/opkg.pub').resolve()
+              with signing_tools(selected, feed, private, public, scratch, Path(os.environ['RUNNER_TEMP']) / 'tools', selected['environment']) as (sdk, tool, keys, folder):
+                  for name in removed:
+                      (feed / name).unlink()
+                  changed = [str(path.relative_to(feed)) for path in indexes(folder, 'ipk', sdk, tool, keys, private, public)]
+          paths = removed + changed + render(feed)
+          require(sum(path.stat().st_size for path in feed.rglob('*') if path.is_file() and '.git' not in path.relative_to(feed).parts) < 900 * 1024 * 1024, 'existing Pages capacity bound')
+          base = prepare_commit(feed, paths, message='Operator cleanup of obsolete sandbox package layouts', orphan=True, removed=removed)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as outgoing:
+              outgoing.write('expected-head=' + base + '\n')
+          print('Prepared operator removal:', len(removed), 'files; canonical IPK index regenerated; no remote mutation requested')
+          OPERATOR
+      - name: Publish checked feed update
+        env:
+          EXPECTED_FEED_HEAD: ${{ steps.prepared.outputs.expected-head }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGES_APP_PRIVATE_KEY: ${{ secrets.PACKAGES_APP_PRIVATE_KEY }}
+          FEED_WRITER_APP_ID: ${{ vars.FEED_WRITER_APP_ID }}
+          FEED_WRITER_INSTALLATION_ID: ${{ vars.FEED_WRITER_INSTALLATION_ID }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 tooling/core_ci/publish.py --phase push \
+            --expected-head "$EXPECTED_FEED_HEAD" \
+            --assignment "$RUNNER_TEMP/assignment.json" \
+            --assignment-sha256 "$ASSIGNMENT_SHA256" \
+            --build-result "$RUNNER_TEMP/build-result.json" \
+            --artifacts "$RUNNER_TEMP/validated/packages" \
+            --feed "$GITHUB_WORKSPACE/feed"

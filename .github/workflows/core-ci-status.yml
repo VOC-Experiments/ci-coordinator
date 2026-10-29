@@ -21,7 +21,7 @@ jobs:
       cancel-in-progress: false
       queue: max
     env:
-      CORE_CI_TOOLING_SHA: "4bbf551c597c681bf26e93b4c946936f1302ef3d"
+      CORE_CI_TOOLING_SHA: "ae4566c553493e207a3e47448e70e925256a90b7"
       CORE_CI_STATUS_URL: ${{ vars.CORE_CI_STATUS_URL }}
       CONTROLLER_APP_BOT_ID: ${{ vars.CONTROLLER_APP_BOT_ID }}
       FEED_REPOSITORY: ${{ vars.FEED_REPOSITORY }}
