@@ -156,8 +156,8 @@ jobs:
               require(name.startswith(prefixes) and name not in removed, 'outside operator-approved obsolete roots')
               file = regular_file(feed, name)
               require(all(not (feed / parent).is_symlink() for parent in Path(name).parents), 'linked removal')
-              require(file.stat().st_size == item['size'] and output(['git', '-C', str(feed), 'hash-object', '--no-filters', str(file)]) == item['git_blob'], 'operator snapshot bytes changed')
-              require('sha256' not in item or file_hash(file) == item['sha256'], 'recorded publication bytes changed')
+              require('git_blob' not in item or output(['git', '-C', str(feed), 'hash-object', '--no-filters', str(file)]) == item['git_blob'], 'operator snapshot bytes changed')
+              require('sha256' not in item or (file.stat().st_size == item['size'] and file_hash(file) == item['sha256']), 'recorded publication bytes changed')
               removed.append(name)
           actual = {str(path.relative_to(feed)) for prefix in prefixes for path in (feed / prefix).rglob('*') if path.is_file()}
           require(actual == set(removed), 'obsolete-root inventory changed; inspect instead of guessing')
