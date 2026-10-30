@@ -1,4 +1,3 @@
-name: Build publication dependency image
 on: workflow_dispatch
 permissions:
   contents: read
@@ -23,6 +22,4 @@ jobs:
             --driver-opt image=moby/buildkit@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
           docker buildx build --platform linux/amd64 --provenance=false \
             --output type=image,name=ghcr.io/voc-experiments/core-ci-publication,push-by-digest=true,name-canonical=true,push=true \
-            --metadata-file "$RUNNER_TEMP/publication-image.json" publication-image
-          python3 -c 'import json,os; p=os.environ["RUNNER_TEMP"]+"/publication-image.json"; print(json.load(open(p))["containerimage.digest"])' \
-            >> "$GITHUB_STEP_SUMMARY"
+            publication-image

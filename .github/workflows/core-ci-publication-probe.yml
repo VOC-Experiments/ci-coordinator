@@ -1,0 +1,23 @@
+name: Cold publication dependency comparison
+on: workflow_dispatch
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          python3 -m venv "$RUNNER_TEMP/baseline-python"
+          "$RUNNER_TEMP/baseline-python/bin/pip" install Jinja2==3.1.6 MarkupSafe==3.0.3
+          "$RUNNER_TEMP/baseline-python/bin/python" -c 'from jinja2 import Template; assert Template("{{ value }}").render(value="ok") == "ok"'
+  image:
+    permissions:
+      packages: read
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/voc-experiments/core-ci-publication@sha256:eed7eb9fd4cc3f79d98aa73bb66fbde4d68409653ab04b8ee7a9359f0f858041
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+    steps:
+      - run: >-
+          /opt/core-ci/python/bin/python -c
+          'from jinja2 import Template; assert Template("{{ value }}").render(value="ok") == "ok"'
