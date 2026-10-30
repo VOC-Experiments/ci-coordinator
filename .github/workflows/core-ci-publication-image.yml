@@ -1,0 +1,28 @@
+name: Build publication dependency image
+on: workflow_dispatch
+permissions:
+  contents: read
+  packages: write
+jobs:
+  image:
+    if: github.repository == 'VOC-Experiments/ci-coordinator' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Build and publish by digest
+        env:
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp status-templates/requirements.txt publication-image/requirements.txt
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker buildx create --use --driver docker-container \
+            --driver-opt image=moby/buildkit@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
+          docker buildx build --platform linux/amd64 --provenance=false \
+            --output type=image,name=ghcr.io/voc-experiments/core-ci-publication,push-by-digest=true,name-canonical=true,push=true \
+            --metadata-file "$RUNNER_TEMP/publication-image.json" publication-image
+          python3 -c 'import json,os; p=os.environ["RUNNER_TEMP"]+"/publication-image.json"; print(json.load(open(p))["containerimage.digest"])' \
+            >> "$GITHUB_STEP_SUMMARY"
